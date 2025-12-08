@@ -4,268 +4,169 @@
   <meta charset="UTF-8" />
   <title>CMNK Staking</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Ethers.js -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+
   <style>
-    :root {
-      --bg-dark: #0a2540;
-      --bg-light: #0b3d91;
-      --accent: #00ccff;
-      --accent-soft: #bcd7ff;
-      --danger: #ff5c5c;
-      --text-main: #ffffff;
-      --text-dark: #002b5c;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, var(--bg-dark), var(--bg-light));
-      color: var(--text-main);
+      background: linear-gradient(135deg, #0a2540, #0b3d91);
+      color: #ffffff;
     }
 
-    .page {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px 12px;
-    }
-
-    .card {
-      width: 100%;
+    .container {
       max-width: 420px;
+      margin: 60px auto;
       padding: 24px;
       background: rgba(255, 255, 255, 0.06);
       border-radius: 16px;
       box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-      border: 1px solid rgba(255, 255, 255, 0.12);
     }
 
     h1 {
       text-align: center;
-      margin: 0 0 6px;
-      font-size: 24px;
+      margin-bottom: 6px;
     }
 
     .subtitle {
       text-align: center;
       font-size: 14px;
-      color: var(--accent-soft);
-      margin-bottom: 20px;
+      color: #bcd7ff;
+      margin-bottom: 24px;
     }
 
-    .badge-row {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin-bottom: 18px;
-      font-size: 11px;
-    }
-
-    .badge {
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: rgba(0, 204, 255, 0.12);
-      border: 1px solid rgba(0, 204, 255, 0.4);
-      color: var(--accent-soft);
-    }
-
-    .stat-box {
-      padding: 10px 12px;
-      border-radius: 10px;
-      background: rgba(0, 0, 0, 0.25);
-      margin-bottom: 10px;
-      font-size: 13px;
-    }
-
-    .stat-line {
+    .stat {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 4px;
+      margin-bottom: 12px;
+      font-size: 14px;
     }
 
-    .stat-line span {
-      color: var(--accent-soft);
-    }
-
-    .stat-line strong {
-      color: #ffffff;
-    }
-
-    label {
-      display: block;
-      font-size: 13px;
-      margin-top: 10px;
-      margin-bottom: 4px;
-    }
-
-    input[type="number"] {
-      width: 100%;
-      padding: 10px 12px;
-      border-radius: 10px;
-      border: none;
-      margin-bottom: 4px;
-      font-size: 15px;
-      outline: none;
-    }
-
-    .hint {
-      font-size: 11px;
-      color: var(--accent-soft);
-      margin-bottom: 10px;
-    }
-
-    .btn {
+    input {
       width: 100%;
       padding: 12px;
-      margin-top: 8px;
+      border-radius: 10px;
+      border: none;
+      margin: 12px 0;
+      font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      margin-top: 10px;
       border-radius: 12px;
       border: none;
-      font-size: 15px;
+      font-size: 16px;
       font-weight: bold;
       cursor: pointer;
-      transition: transform 0.08s ease, box-shadow 0.08s ease, opacity 0.1s;
     }
 
-    .btn:active {
-      transform: translateY(1px);
-      opacity: 0.9;
-      box-shadow: none;
+    button.primary {
+      background: #00ccff;
+      color: #002b5c;
     }
 
-    .btn-primary {
-      background: var(--accent);
-      color: var(--text-dark);
-      box-shadow: 0 10px 20px rgba(0, 204, 255, 0.35);
-    }
-
-    .btn-secondary {
+    button.secondary {
       background: #ffffff;
-      color: var(--text-dark);
+      color: #002b5c;
     }
 
-    .btn-danger {
-      background: var(--danger);
+    button.danger {
+      background: #ff5c5c;
       color: #ffffff;
     }
 
-    .section-title {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--accent-soft);
-      margin-top: 16px;
-      margin-bottom: 6px;
+    button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
     }
 
-    .steps {
-      font-size: 12px;
-      color: var(--accent-soft);
-      margin-bottom: 10px;
-      line-height: 1.4;
-    }
-
-    .steps li {
-      margin-bottom: 4px;
+    .wallet {
+      text-align: center;
+      font-size: 13px;
+      color: #bcd7ff;
+      margin-top: 10px;
     }
 
     .footer {
-      text-align: left;
-      font-size: 10px;
-      margin-top: 14px;
-      color: var(--accent-soft);
-      line-height: 1.4;
+      text-align: center;
+      font-size: 12px;
+      margin-top: 20px;
+      color: #bcd7ff;
       word-break: break-all;
-    }
-
-    .footer a {
-      color: var(--accent);
-      text-decoration: none;
-    }
-
-    .footer a:hover {
-      text-decoration: underline;
-    }
-
-    @media (max-width: 480px) {
-      .card {
-        padding: 18px;
-      }
     }
   </style>
 </head>
+
 <body>
-  <div class="page">
-    <div class="card">
-      <h1>CMNK Staking</h1>
-      <div class="subtitle">
-        Official staking contract for CryptoManek (CMNK) on BNB Chain.
-      </div>
+  <div class="container">
+    <h1>CMNK Staking</h1>
+    <div class="subtitle">
+      5% APR • No lock time • BNB Chain
+    </div>
 
-      <div class="badge-row">
-        <div class="badge">5% APR</div>
-        <div class="badge">No lock time</div>
-        <div class="badge">Rewards in CMNK</div>
-      </div>
+    <div class="stat">
+      <span>Your Staked</span>
+      <strong>—</strong>
+    </div>
 
-      <!-- Statystyki (na razie statyczne – później podłączymy web3) -->
-      <div class="stat-box">
-        <div class="stat-line">
-          <span>Your Staked</span>
-          <strong>0 CMNK</strong>
-        </div>
-        <div class="stat-line">
-          <span>Pending Rewards</span>
-          <strong>0 CMNK</strong>
-        </div>
-      </div>
+    <div class="stat">
+      <span>Pending Rewards</span>
+      <strong>—</strong>
+    </div>
 
-      <!-- Krok 1: Connect -->
-      <button class="btn btn-secondary">Connect Wallet</button>
+    <!-- CONNECT -->
+    <button id="connectBtn" class="secondary">
+      Connect Wallet
+    </button>
 
-      <!-- Krok 2: Stake -->
-      <label for="stakeAmount">Amount to stake</label>
-      <input
-        id="stakeAmount"
-        type="number"
-        min="0"
-        step="0.000001"
-        placeholder="Enter CMNK amount"
-      />
-      <div class="hint">Remember: you need CMNK on BNB Chain + some BNB for gas.</div>
-      <button class="btn btn-primary">Stake</button>
+    <div id="walletInfo" class="wallet"></div>
 
-      <!-- Krok 3–4: Claim / Unstake -->
-      <button class="btn btn-secondary">Claim Rewards</button>
-      <button class="btn btn-danger">Unstake</button>
+    <!-- PLACEHOLDERS (disabled for now) -->
+    <input type="number" placeholder="Amount to stake" disabled />
+    <button class="primary" disabled>Stake (soon)</button>
+    <button class="secondary" disabled>Claim Rewards (soon)</button>
+    <button class="danger" disabled>Unstake (soon)</button>
 
-      <!-- Krótka instrukcja tekstowa -->
-      <div class="section-title">How it works</div>
-      <ol class="steps">
-        <li>Connect your wallet on BNB Chain (MetaMask, etc.).</li>
-        <li>Approve the staking contract for CMNK (first time only).</li>
-        <li>Enter the CMNK amount and press <strong>Stake</strong>.</li>
-        <li>Use <strong>Claim Rewards</strong> anytime to receive earned CMNK.</li>
-        <li>Use <strong>Unstake</strong> to withdraw your staked CMNK (no lock time).</li>
-      </ol>
-
-      <!-- Adresy kontraktów -->
-      <div class="footer">
-        <div><strong>CMNK Token:</strong><br>
-          0xd17c85824eB60d40D332e64B0167E0B4029F49BA
-        </div>
-        <div style="margin-top:6px;"><strong>Staking Contract:</strong><br>
-          0x07d62b6725f559e4ca7dfc04586c0cf294f58aa9
-        </div>
-        <div style="margin-top:6px;">
-          You can verify both contracts on BscScan before interacting.
-        </div>
-      </div>
+    <div class="footer">
+      Staking contract:<br>
+      0x07d62b6725f559e4ca7dfc04586c0cf294f58aa9
     </div>
   </div>
+
+  <script>
+    const connectBtn = document.getElementById("connectBtn");
+    const walletInfo = document.getElementById("walletInfo");
+
+    connectBtn.addEventListener("click", async () => {
+      if (!window.ethereum) {
+        alert("MetaMask not detected. Please install MetaMask.");
+        return;
+      }
+
+      try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        const signer = provider.getSigner();
+        const address = await signer.getAddress();
+
+        walletInfo.innerText =
+          "Connected: " +
+          address.slice(0, 6) +
+          "..." +
+          address.slice(-4);
+
+        connectBtn.innerText = "Wallet Connected ✅";
+        connectBtn.disabled = true;
+
+      } catch (err) {
+        console.error(err);
+        alert("Wallet connection cancelled");
+      }
+    });
+  </script>
 </body>
 </html>
