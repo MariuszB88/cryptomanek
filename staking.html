@@ -4,125 +4,241 @@
   <meta charset="UTF-8" />
   <title>CMNK Staking</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <style>
-    body { margin: 0; font-family: Arial, sans-serif; background: linear-gradient(135deg, #0a2540, #0b3d91); color: #fff; }
-    .container { max-width: 420px; margin: 60px auto; padding: 24px; background: rgba(255,255,255,0.06); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
-    h1 { text-align: center; margin-bottom: 8px; }
-    .subtitle { text-align: center; font-size: 14px; color: #bcd7ff; margin-bottom: 24px; }
-    .stat { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; }
-    input, button { width: 100%; padding: 12px; margin: 8px 0; font-size: 16px; border: none; border-radius: 10px; }
-    button { font-weight: bold; cursor: pointer; }
-    button.primary { background: #00ccff; color: #002b5c; }
-    button.secondary { background: #ffffff; color: #002b5c; }
-    button.danger { background: #ff5c5c; color: #ffffff; }
-    .footer { text-align: center; font-size: 12px; margin-top: 20px; color: #bcd7ff; word-break: break-all; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #0a2540, #0b3d91);
+      color: #ffffff;
+    }
+
+    .container {
+      max-width: 420px;
+      margin: 60px auto;
+      padding: 24px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 16px;
+      box-shadow: 0 30px 60px rgba(0,0,0,0.3);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 14px;
+      color: #bcd7ff;
+      margin-bottom: 24px;
+    }
+
+    .stat {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      margin: 12px 0;
+      font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      margin-top: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .primary {
+      background: #00d1ff;
+      color: #002b5c;
+    }
+
+    .secondary {
+      background: #ffffff;
+      color: #002b5c;
+    }
+
+    .danger {
+      background: #ff5c5c;
+      color: #ffffff;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 12px;
+      margin-top: 18px;
+      color: #bcd7ff;
+      word-break: break-all;
+    }
   </style>
 </head>
+
 <body>
   <div class="container">
     <h1>CMNK Staking</h1>
-    <div class="subtitle">Stake CMNK • 5% APR • No lock time • BNB Chain</div>
+    <div class="subtitle">
+      5% APR • No lock time • BNB Chain
+    </div>
 
-    <div class="stat"><span>Your Staked</span><strong id="stakedAmount">-</strong></div>
-    <div class="stat"><span>Pending Rewards</span><strong id="pendingRewards">-</strong></div>
+    <div class="stat">
+      <span>Your Staked</span>
+      <strong id="yourStaked">-</strong>
+    </div>
 
-    <button id="connectWallet" class="primary">Connect Wallet</button>
+    <div class="stat">
+      <span>Pending Rewards</span>
+      <strong id="pendingRewards">-</strong>
+    </div>
 
-    <input id="stakeInput" type="number" placeholder="Amount to stake" disabled />
-    <button id="stakeBtn" class="primary" disabled>Stake</button>
-    <button id="claimBtn" class="secondary" disabled>Claim Rewards</button>
-    <button id="unstakeBtn" class="danger" disabled>Unstake</button>
+    <button id="connectWallet" class="primary">
+      Connect Wallet
+    </button>
 
-    <div class="footer">Staking contract: 0x07d62b6725f559e4ca7dfc04586c0cf294f58aa9</div>
+    <input
+      id="stakeAmount"
+      type="number"
+      placeholder="Amount to stake"
+      disabled
+    />
+
+    <button id="stakeBtn" class="primary" disabled>
+      Stake
+    </button>
+
+    <button id="claimBtn" class="secondary" disabled>
+      Claim Rewards
+    </button>
+
+    <button id="unstakeBtn" class="danger" disabled>
+      Unstake
+    </button>
+
+    <div class="footer">
+      Staking contract:<br>
+      0x07d62b6725f559e4ca7dfc04586c0cf294f58aa9
+    </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+  <!-- ================= SCRIPT ================= -->
+
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+
   <script>
-    const stakingAddress = '0x07d62b6725f559e4ca7dfc04586c0cf294f58aa9';
-    const tokenAddress   = '0xd17c85824eB60d40D332e64B0167E0B4029F49BA';
+    const STAKING_CONTRACT =
+      "0x07d62b6725f559e4ca7dfc04586c0cf294f58aa9";
+
+    const TOKEN_DECIMALS = 18;
 
     const stakingAbi = [
-      {
-        "inputs":[{"internalType":"address","name":"_token","type":"address"}],
-        "stateMutability":"nonpayable",
-        "type":"constructor"
-      },
-      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"Staked","type":"event"},
-      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"Unstaked","type":"event"},
-      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"reward","type":"uint256"}],"name":"Claimed","type":"event"},
-      {"inputs":[{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"stake","outputs":[],"stateMutability":"nonpayable","type":"function"},
-      {"inputs":[{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"unstake","outputs":[],"stateMutability":"nonpayable","type":"function"},
-      {"inputs":[],"name":"claim","outputs":[],"stateMutability":"nonpayable","type":"function"},
-      {"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"pendingRewards","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-      {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"stakes","outputs":[{"internalType":"uint256","name":"amount","type":"uint256"},{"internalType":"uint256","name":"rewardDebt","type":"uint256"},{"internalType":"uint256","name":"lastUpdate","type":"uint256"}],"stateMutability":"view","type":"function"}
+      "function stake(uint256 amount)",
+      "function unstake(uint256 amount)",
+      "function claim()",
+      "function pendingRewards(address user) view returns (uint256)",
+      "function stakes(address user) view returns (uint256 amount, uint256 rewardDebt, uint256 lastUpdate)"
     ];
 
-    const erc20Abi = [
-      { "constant": true, "inputs": [ { "name": "", "type": "address" } ], "name": "balanceOf", "outputs":[ { "name": "", "type": "uint256" } ], "type":"function" },
-      { "constant": false, "inputs": [ { "name": "spender", "type": "address" }, { "name": "amount", "type":"uint256" } ], "name":"approve", "outputs":[ { "name":"", "type":"bool" } ], "type":"function"}
-    ];
+    let provider;
+    let signer;
+    let staking;
+    let user;
 
-    let web3, stakingContract, tokenContract, userAccount;
+    const connectBtn = document.getElementById("connectWallet");
+    const stakeBtn = document.getElementById("stakeBtn");
+    const claimBtn = document.getElementById("claimBtn");
+    const unstakeBtn = document.getElementById("unstakeBtn");
+    const amountInput = document.getElementById("stakeAmount");
+
+    const stakedEl = document.getElementById("yourStaked");
+    const rewardsEl = document.getElementById("pendingRewards");
 
     async function connectWallet() {
-      if (window.ethereum) {
-        web3 = new Web3(window.ethereum);
-        try {
-          await window.ethereum.request({ method: 'eth_requestAccounts' });
-          const accounts = await web3.eth.getAccounts();
-          userAccount = accounts[0];
-          stakingContract = new web3.eth.Contract(stakingAbi, stakingAddress);
-          tokenContract = new web3.eth.Contract(erc20Abi, tokenAddress);
-
-          document.getElementById('connectWallet').innerText = 'Wallet Connected';
-          document.getElementById('stakeInput').disabled = false;
-          document.getElementById('stakeBtn').disabled = false;
-          document.getElementById('claimBtn').disabled = false;
-          document.getElementById('unstakeBtn').disabled = false;
-
-          await refreshData();
-        } catch(err) {
-          alert('Wallet connection error: ' + err.message);
-        }
-      } else {
-        alert('Please install MetaMask or another Web3 wallet');
+      if (!window.ethereum) {
+        alert("MetaMask not found");
+        return;
       }
+
+      provider = new ethers.providers.Web3Provider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      signer = provider.getSigner();
+      user = await signer.getAddress();
+
+      staking = new ethers.Contract(
+        STAKING_CONTRACT,
+        stakingAbi,
+        signer
+      );
+
+      connectBtn.textContent = "Wallet Connected";
+
+      stakeBtn.disabled = false;
+      claimBtn.disabled = false;
+      unstakeBtn.disabled = false;
+      amountInput.disabled = false;
+
+      await refreshData();
     }
 
     async function refreshData() {
-      if (!userAccount) return;
-      try {
-        const stakeInfo = await stakingContract.methods.stakes(userAccount).call();
-        const pending  = await stakingContract.methods.pendingRewards(userAccount).call();
-        const staked   = web3.utils.fromWei(stakeInfo.amount, 'ether');
-        const rewards  = web3.utils.fromWei(pending, 'ether');
-        document.getElementById('stakedAmount').innerText = staked;
-        document.getElementById('pendingRewards').innerText = rewards;
-      } catch(e) {
-        console.error('Error reading contract data', e);
-      }
+      const info = await staking.stakes(user);
+      const rewards = await staking.pendingRewards(user);
+
+      stakedEl.textContent =
+        ethers.utils.formatUnits(info.amount, TOKEN_DECIMALS);
+
+      rewardsEl.textContent =
+        ethers.utils.formatUnits(rewards, TOKEN_DECIMALS);
     }
 
-    document.getElementById('connectWallet').onclick = connectWallet;
-    document.getElementById('stakeBtn').onclick = async () => {
-      const amt = document.getElementById('stakeInput').value;
-      if (!amt || +amt <= 0) { alert('Enter valid amount'); return; }
-      const amount = web3.utils.toWei(amt, 'ether');
-      await tokenContract.methods.approve(stakingAddress, amount).send({ from: userAccount });
-      await stakingContract.methods.stake(amount).send({ from: userAccount });
+    async function stakeTokens() {
+      if (!signer) await connectWallet();
+
+      const amount = ethers.utils.parseUnits(
+        amountInput.value,
+        TOKEN_DECIMALS
+      );
+
+      const tx = await staking.stake(amount);
+      await tx.wait();
       await refreshData();
-    };
-    document.getElementById('claimBtn').onclick = async () => {
-      await stakingContract.methods.claim().send({ from: userAccount });
+    }
+
+    async function claimRewards() {
+      if (!signer) await connectWallet();
+      const tx = await staking.claim();
+      await tx.wait();
       await refreshData();
-    };
-    document.getElementById('unstakeBtn').onclick = async () => {
-      const amt = document.getElementById('stakeInput').value;
-      if (!amt || +amt <= 0) { alert('Enter valid amount'); return; }
-      const amount = web3.utils.toWei(amt, 'ether');
-      await stakingContract.methods.unstake(amount).send({ from: userAccount });
+    }
+
+    async function unstakeTokens() {
+      if (!signer) await connectWallet();
+
+      const amount = ethers.utils.parseUnits(
+        amountInput.value,
+        TOKEN_DECIMALS
+      );
+
+      const tx = await staking.unstake(amount);
+      await tx.wait();
       await refreshData();
-    };
+    }
+
+    connectBtn.onclick = connectWallet;
+    stakeBtn.onclick = stakeTokens;
+    claimBtn.onclick = claimRewards;
+    unstakeBtn.onclick = unstakeTokens;
   </script>
 </body>
 </html>
