@@ -5,110 +5,43 @@
   <title>CMNK Staking</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #0a2540, #0b3d91);
-      color: #ffffff;
-    }
-    .container {
-      max-width: 420px;
-      margin: 60px auto;
-      padding: 24px;
-      background: rgba(255, 255, 255, 0.06);
-      border-radius: 16px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-    }
-    h1 {
-      text-align: center;
-      margin-bottom: 8px;
-    }
-    .subtitle {
-      text-align: center;
-      font-size: 14px;
-      color: #bcd7ff;
-      margin-bottom: 24px;
-    }
-    .stat {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 12px;
-      font-size: 14px;
-    }
+    body { margin: 0; font-family: Arial, sans-serif; background: linear-gradient(135deg, #0a2540, #0b3d91); color: #fff; }
+    .container { max-width: 420px; margin: 60px auto; padding: 24px; background: rgba(255,255,255,0.06); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+    h1 { text-align: center; margin-bottom: 8px; }
+    .subtitle { text-align: center; font-size: 14px; color: #bcd7ff; margin-bottom: 24px; }
+    .stat { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; }
     input, button {
-      width: 100%;
-      padding: 12px;
-      margin: 8px 0;
-      font-size: 16px;
-      border: none;
-      border-radius: 10px;
+      width: 100%; padding: 12px; margin: 8px 0; font-size: 16px; border: none; border-radius: 10px;
     }
-    button {
-      font-weight: bold;
-      cursor: pointer;
-    }
-    button.primary {
-      background: #00ccff;
-      color: #002b5c;
-    }
-    button.secondary {
-      background: #ffffff;
-      color: #002b5c;
-    }
-    button.danger {
-      background: #ff5c5c;
-      color: #ffffff;
-    }
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    .footer {
-      text-align: center;
-      font-size: 12px;
-      margin-top: 20px;
-      color: #bcd7ff;
-      word-break: break-all;
-    }
+    button { font-weight: bold; cursor: pointer; }
+    button.primary { background: #00ccff; color: #002b5c; }
+    button.secondary { background: #ffffff; color: #002b5c; }
+    button.danger { background: #ff5c5c; color: #ffffff; }
+    .footer { text-align: center; font-size: 12px; margin-top: 20px; color: #bcd7ff; word-break: break-all; }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>CMNK Staking</h1>
-    <div class="subtitle">5% APR • No lock • BNB Chain</div>
-
-    <div class="stat">
-      <span>Your Staked</span>
-      <strong id="stakedAmount">0</strong>
-    </div>
-    <div class="stat">
-      <span>Pending Rewards</span>
-      <strong id="pendingRewards">0</strong>
-    </div>
-
+    <div class="subtitle">Stake CMNK • 5% APR • No lock time • BNB Chain</div>
+    <div class="stat"><span>Your Staked</span><strong id="stakedAmount">-</strong></div>
+    <div class="stat"><span>Pending Rewards</span><strong id="pendingRewards">-</strong></div>
     <button id="connectWallet" class="primary">Connect Wallet</button>
-
-    <input id="stakeInput" type="number" min="0" step="0.000001" placeholder="Amount CMNK" disabled />
+    <input id="stakeInput" type="number" placeholder="Amount to stake" disabled />
     <button id="stakeBtn" class="primary" disabled>Stake</button>
-    <button id="claimBtn" class="secondary" disabled>Claim</button>
+    <button id="claimBtn" class="secondary" disabled>Claim Rewards</button>
     <button id="unstakeBtn" class="danger" disabled>Unstake</button>
-
-    <div class="footer">
-      Staking Contract: 0x07d62b6725f559e4ca7dfc04586c0cf294f58aa9
-    </div>
+    <div class="footer">Staking contract: 0x07d62b6725f559e4ca7dfc04586c0cf294f58aa9</div>
   </div>
 
-  <!-- Web3.js z CDN -->
   <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
   <script>
-    // 🔗 Adresy
     const stakingAddress = '0x07d62b6725f559e4ca7dfc04586c0cf294f58aa9';
-    const tokenAddress   = '0xd17c85824eB60d40D332e64B0167E0B4029F49BA'; // CMNK
+    const tokenAddress   = '0xd17c85824eB60d40D332e64B0167E0B4029F49BA';
 
-    // 📜 ABI kontraktu stakingu (CmnkStakingBasic) – TWOJE ABI
     const stakingAbi = [
       {
-        "inputs": [{"internalType":"address","name":"_token","type":"address"}],
+        "inputs":[{"internalType":"address","name":"_token","type":"address"}],
         "stateMutability":"nonpayable",
         "type":"constructor"
       },
@@ -180,215 +113,71 @@
       }
     ];
 
-    // Minimalne ABI ERC-20 (CMNK)
     const erc20Abi = [
-      {
-        "constant":true,
-        "inputs":[{"name":"account","type":"address"}],
-        "name":"balanceOf",
-        "outputs":[{"name":"","type":"uint256"}],
-        "type":"function"
-      },
-      {
-        "constant":false,
-        "inputs":[
-          {"name":"spender","type":"address"},
-          {"name":"amount","type":"uint256"}
-        ],
-        "name":"approve",
-        "outputs":[{"name":"","type":"bool"}],
-        "type":"function"
-      },
-      {
-        "constant":true,
-        "inputs":[],
-        "name":"decimals",
-        "outputs":[{"name":"","type":"uint8"}],
-        "type":"function"
-      }
+      { constant:true, inputs:[{ name:"", type:"address"}], name:"balanceOf", outputs:[{ name:"", type:"uint256"}], type:"function" },
+      { constant:false, inputs:[{ name:"spender", type:"address"}, { name:"amount", type:"uint256"}], name:"approve", outputs:[{ name:"", type:"bool"}], type:"function" }
     ];
 
-    let web3;
-    let stakingContract;
-    let tokenContract;
-    let userAccount;
-    let tokenDecimals = 18; // domyślnie 18 – zaraz spróbujemy odczytać z kontraktu
+    let web3, stakingContract, tokenContract, userAccount;
 
-    const connectBtn   = document.getElementById('connectWallet');
-    const stakeInput   = document.getElementById('stakeInput');
-    const stakeBtn     = document.getElementById('stakeBtn');
-    const claimBtn     = document.getElementById('claimBtn');
-    const unstakeBtn   = document.getElementById('unstakeBtn');
-    const stakedSpan   = document.getElementById('stakedAmount');
-    const pendingSpan  = document.getElementById('pendingRewards');
-
-    function toUnits(raw) {
-      return Number(web3.utils.fromWei(raw, 'ether')).toFixed(6);
-    }
-
-    async function initContracts() {
-      stakingContract = new web3.eth.Contract(stakingAbi, stakingAddress);
-      tokenContract   = new web3.eth.Contract(erc20Abi, tokenAddress);
-      try {
-        const d = await tokenContract.methods.decimals().call();
-        tokenDecimals = parseInt(d, 10);
-      } catch (e) {
-        // jeśli brak decimals() – zostaje 18
+    async function connect() {
+      if (window.ethereum) {
+        web3 = new Web3(window.ethereum);
+        try {
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+          const accounts = await web3.eth.getAccounts();
+          userAccount = accounts[0];
+          stakingContract = new web3.eth.Contract(stakingAbi, stakingAddress);
+          tokenContract   = new web3.eth.Contract(erc20Abi, tokenAddress);
+          document.getElementById('connectWallet').innerText = 'Wallet Connected';
+          document.getElementById('stakeInput').disabled = false;
+          document.getElementById('stakeBtn').disabled = false;
+          document.getElementById('claimBtn').disabled = false;
+          document.getElementById('unstakeBtn').disabled = false;
+          await refreshStats();
+        } catch (err) {
+          alert('Could not connect wallet: ' + err.message);
+        }
+      } else {
+        alert('Please install MetaMask or another Web3 wallet');
       }
     }
 
     async function refreshStats() {
-      if (!stakingContract || !userAccount) return;
-
+      // Pobierz stakowane tokeny i nagrody — jeśli funkcje kontraktu zwracają dane
       try {
         const stakeInfo = await stakingContract.methods.stakes(userAccount).call();
-        const pending   = await stakingContract.methods.pendingRewards(userAccount).call();
-
-        const divisor = web3.utils.toBN(10).pow(web3.utils.toBN(tokenDecimals));
-
-        const stakedHuman  = web3.utils.toBN(stakeInfo.amount).isZero()
-          ? '0'
-          : (web3.utils.toBN(stakeInfo.amount).div(divisor)).toString();
-
-        const pendingHuman = web3.utils.toBN(pending).isZero()
-          ? '0'
-          : (web3.utils.toBN(pending).div(divisor)).toString();
-
-        stakedSpan.innerText  = stakedHuman;
-        pendingSpan.innerText = pendingHuman;
-      } catch (e) {
-        console.error('refreshStats error', e);
+        const pending = await stakingContract.methods.pendingRewards(userAccount).call();
+        // Konwertuj z wei na ludzką liczbę (załóżmy 18 dec)
+        const staked = web3.utils.fromWei(stakeInfo.amount, 'ether');
+        const rewards = web3.utils.fromWei(pending, 'ether');
+        document.getElementById('stakedAmount').innerText = staked;
+        document.getElementById('pendingRewards').innerText = rewards;
+      } catch(e) {
+        console.log('Error reading contract data', e);
       }
     }
 
-    async function connectWallet() {
-      if (!window.ethereum) {
-        alert('Please install MetaMask or another Web3 wallet (BNB Chain).');
-        return;
-      }
-      try {
-        web3 = new Web3(window.ethereum);
-        await window.ethereum.request({ method: 'eth_requestAccounts' });
-        const accounts = await web3.eth.getAccounts();
-        userAccount = accounts[0];
-
-        await initContracts();
-
-        connectBtn.innerText = 'Wallet Connected';
-        stakeInput.disabled  = false;
-        stakeBtn.disabled    = false;
-        claimBtn.disabled    = false;
-        unstakeBtn.disabled  = false;
-
-        await refreshStats();
-      } catch (e) {
-        console.error(e);
-        alert('Wallet connection cancelled or failed.');
-      }
-    }
-
-    async function stake() {
-      if (!userAccount) {
-        alert('Connect wallet first.');
-        return;
-      }
-      const value = stakeInput.value;
-      if (!value || Number(value) <= 0) {
-        alert('Enter amount of CMNK to stake.');
-        return;
-      }
-      try {
-        const decimalsBN = web3.utils.toBN(tokenDecimals);
-        const amountWei  = web3.utils.toBN(10).pow(decimalsBN)
-          .mul(web3.utils.toBN(Math.floor(Number(value) * 10 ** 6)))
-          .div(web3.utils.toBN(10 ** 6));
-
-        // 1) approve CMNK → staking contract
-        await tokenContract.methods
-          .approve(stakingAddress, amountWei.toString())
-          .send({ from: userAccount });
-
-        // 2) stake()
-        await stakingContract.methods
-          .stake(amountWei.toString())
-          .send({ from: userAccount });
-
-        stakeInput.value = '';
-        await refreshStats();
-      } catch (e) {
-        console.error(e);
-        alert('Stake failed: ' + (e?.message || e));
-      }
-    }
-
-    async function claim() {
-      if (!userAccount) {
-        alert('Connect wallet first.');
-        return;
-      }
-      try {
-        await stakingContract.methods
-          .claim()
-          .send({ from: userAccount });
-
-        await refreshStats();
-      } catch (e) {
-        console.error(e);
-        alert('Claim failed: ' + (e?.message || e));
-      }
-    }
-
-    async function unstake() {
-      if (!userAccount) {
-        alert('Connect wallet first.');
-        return;
-      }
-      const value = stakeInput.value;
-      if (!value || Number(value) <= 0) {
-        alert('Enter amount of CMNK to unstake.');
-        return;
-      }
-      try {
-        const decimalsBN = web3.utils.toBN(tokenDecimals);
-        const amountWei  = web3.utils.toBN(10).pow(decimalsBN)
-          .mul(web3.utils.toBN(Math.floor(Number(value) * 10 ** 6)))
-          .div(web3.utils.toBN(10 ** 6));
-
-        await stakingContract.methods
-          .unstake(amountWei.toString())
-          .send({ from: userAccount });
-
-        stakeInput.value = '';
-        await refreshStats();
-      } catch (e) {
-        console.error(e);
-        alert('Unstake failed: ' + (e?.message || e));
-      }
-    }
-
-    // 🇧🇳 BNB Chain account change / network change
-    if (window.ethereum) {
-      window.ethereum.on('accountsChanged', (accounts) => {
-        if (accounts.length === 0) {
-          userAccount = null;
-          connectBtn.innerText = 'Connect Wallet';
-          stakeInput.disabled  = true;
-          stakeBtn.disabled    = true;
-          claimBtn.disabled    = true;
-          unstakeBtn.disabled  = true;
-          stakedSpan.innerText = '0';
-          pendingSpan.innerText = '0';
-        } else {
-          userAccount = accounts[0];
-          connectWallet();
-        }
-      });
-    }
-
-    connectBtn.addEventListener('click', connectWallet);
-    stakeBtn.addEventListener('click', stake);
-    claimBtn.addEventListener('click', claim);
-    unstakeBtn.addEventListener('click', unstake);
+    document.getElementById('connectWallet').onclick = connect;
+    document.getElementById('stakeBtn').onclick = async () => {
+      const amt = document.getElementById('stakeInput').value;
+      if (!amt || amt <= 0) { alert('Enter amount'); return; }
+      const amount = web3.utils.toWei(amt, 'ether'); 
+      await tokenContract.methods.approve(stakingAddress, amount).send({ from: userAccount });
+      await stakingContract.methods.stake(amount).send({ from: userAccount });
+      await refreshStats();
+    };
+    document.getElementById('claimBtn').onclick = async () => {
+      await stakingContract.methods.claim().send({ from: userAccount });
+      await refreshStats();
+    };
+    document.getElementById('unstakeBtn').onclick = async () => {
+      const amt = document.getElementById('stakeInput').value;
+      if (!amt || amt <= 0) { alert('Enter amount'); return; }
+      const amount = web3.utils.toWei(amt, 'ether');
+      await stakingContract.methods.unstake(amount).send({ from: userAccount });
+      await refreshStats();
+    };
   </script>
 </body>
 </html>
