@@ -5,9 +5,6 @@
   <title>CMNK Staking</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Ethers.js -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
-
   <style>
     body {
       margin: 0;
@@ -62,9 +59,6 @@
       font-size: 16px;
       font-weight: bold;
       cursor: pointer;
-    }
-
-    button.primary {
       background: #00ccff;
       color: #002b5c;
     }
@@ -79,16 +73,16 @@
       color: #ffffff;
     }
 
-    button:disabled {
-      opacity: 0.7;
+    button.disabled {
+      opacity: 0.6;
       cursor: not-allowed;
     }
 
-    .wallet {
-      text-align: center;
-      font-size: 13px;
-      color: #bcd7ff;
+    .wallet-status {
       margin-top: 10px;
+      font-size: 14px;
+      text-align: center;
+      color: #bcd7ff;
     }
 
     .footer {
@@ -112,24 +106,24 @@
       <span>Your Staked</span>
       <strong>—</strong>
     </div>
-
     <div class="stat">
       <span>Pending Rewards</span>
       <strong>—</strong>
     </div>
 
-    <!-- CONNECT -->
-    <button id="connectBtn" class="secondary">
+    <button class="secondary" onclick="connectWallet()">
       Connect Wallet
     </button>
 
-    <div id="walletInfo" class="wallet"></div>
+    <div id="walletStatus" class="wallet-status">
+      Wallet not connected
+    </div>
 
-    <!-- PLACEHOLDERS (disabled for now) -->
     <input type="number" placeholder="Amount to stake" disabled />
-    <button class="primary" disabled>Stake (soon)</button>
-    <button class="secondary" disabled>Claim Rewards (soon)</button>
-    <button class="danger" disabled>Unstake (soon)</button>
+
+    <button class="disabled">Stake (soon)</button>
+    <button class="secondary disabled">Claim Rewards (soon)</button>
+    <button class="danger disabled">Unstake (soon)</button>
 
     <div class="footer">
       Staking contract:<br>
@@ -137,36 +131,30 @@
     </div>
   </div>
 
-  <script>
-    const connectBtn = document.getElementById("connectBtn");
-    const walletInfo = document.getElementById("walletInfo");
+<script>
+async function connectWallet() {
+  if (!window.ethereum) {
+    document.getElementById("walletStatus").innerText =
+      "MetaMask not detected";
+    return;
+  }
 
-    connectBtn.addEventListener("click", async () => {
-      if (!window.ethereum) {
-        alert("MetaMask not detected. Please install MetaMask.");
-        return;
-      }
-
-      try {
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
-        const signer = provider.getSigner();
-        const address = await signer.getAddress();
-
-        walletInfo.innerText =
-          "Connected: " +
-          address.slice(0, 6) +
-          "..." +
-          address.slice(-4);
-
-        connectBtn.innerText = "Wallet Connected ✅";
-        connectBtn.disabled = true;
-
-      } catch (err) {
-        console.error(err);
-        alert("Wallet connection cancelled");
-      }
+  try {
+    const accounts = await window.ethereum.request({
+      method: "eth_requestAccounts"
     });
-  </script>
+
+    const account = accounts[0];
+    document.getElementById("walletStatus").innerText =
+      "Connected: " + account.slice(0, 6) + "..." + account.slice(-4);
+
+  } catch (error) {
+    console.log("Wallet connection cancelled by user");
+    document.getElementById("walletStatus").innerText =
+      "Wallet not connected";
+  }
+}
+</script>
+
 </body>
 </html>
