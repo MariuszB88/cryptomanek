@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>CMNK Staking</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
 body {
   background: linear-gradient(135deg, #0a2540, #0b3d91);
@@ -57,7 +58,8 @@ Staking Contract:<br>
 const stakingAddress = "0x07d62b6725f559e4ca7dfc04586c0cf294f58aa9";
 const tokenAddress   = "0xd17c85824eB60d40D332e64B0167E0B4029F49BA";
 
-const stakingAbi =
+/* ==== ABI – WSTAWIONE POPRAWNIE ==== */
+const stakingAbi = [
   {
     "inputs": [{"internalType":"address","name":"_token","type":"address"}],
     "stateMutability":"nonpayable",
@@ -131,10 +133,17 @@ const stakingAbi =
   }
 ];
 
-
 const erc20Abi = [
-  {"inputs":[{"name":"spender","type":"address"},{"name":"amount","type":"uint256"}],
-   "name":"approve","outputs":[{"type":"bool"}],"stateMutability":"nonpayable","type":"function"}
+  {
+    "constant":false,
+    "inputs":[
+      {"name":"spender","type":"address"},
+      {"name":"amount","type":"uint256"}
+    ],
+    "name":"approve",
+    "outputs":[{"type":"bool"}],
+    "type":"function"
+  }
 ];
 
 let web3, user, staking, token;
@@ -147,8 +156,9 @@ async function connect() {
   staking = new web3.eth.Contract(stakingAbi, stakingAddress);
   token = new web3.eth.Contract(erc20Abi, tokenAddress);
 
-  document.querySelectorAll("input,button").forEach(e=>e.disabled=false);
+  document.querySelectorAll("input,button").forEach(e => e.disabled = false);
   document.getElementById("connect").innerText = "Wallet Connected";
+
   refresh();
 }
 
@@ -160,18 +170,23 @@ async function refresh() {
 }
 
 document.getElementById("connect").onclick = connect;
+
 document.getElementById("stake").onclick = async () => {
-  const v = web3.utils.toWei(amount.value);
-  await token.methods.approve(stakingAddress,v).send({from:user});
-  await staking.methods.stake(v).send({from:user});
+  const value = web3.utils.toWei(amount.value);
+  await token.methods.approve(stakingAddress, value).send({ from:user });
+  await staking.methods.stake(value).send({ from:user });
   refresh();
 };
+
 document.getElementById("claim").onclick = async () => {
-  await staking.methods.claim().send({from:user}); refresh();
+  await staking.methods.claim().send({ from:user });
+  refresh();
 };
+
 document.getElementById("unstake").onclick = async () => {
-  const v = web3.utils.toWei(amount.value);
-  await staking.methods.unstake(v).send({from:user}); refresh();
+  const value = web3.utils.toWei(amount.value);
+  await staking.methods.unstake(value).send({ from:user });
+  refresh();
 };
 </script>
 </body>
