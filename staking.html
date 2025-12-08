@@ -1,244 +1,240 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>CMNK Staking</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8" />
+<title>CMNK Staking</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #0a2540, #0b3d91);
-      color: #ffffff;
-    }
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 
-    .container {
-      max-width: 420px;
-      margin: 60px auto;
-      padding: 24px;
-      background: rgba(255,255,255,0.08);
-      border-radius: 16px;
-      box-shadow: 0 30px 60px rgba(0,0,0,0.3);
-    }
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(180deg, #0b1e3d, #0f3c7a);
+  color: white;
+}
 
-    h1 {
-      text-align: center;
-      margin-bottom: 6px;
-    }
+.container {
+  max-width: 420px;
+  margin: 60px auto;
+  background: rgba(255,255,255,0.08);
+  padding: 30px;
+  border-radius: 14px;
+  box-shadow: 0 0 30px rgba(0,0,0,0.4);
+}
 
-    .subtitle {
-      text-align: center;
-      font-size: 14px;
-      color: #bcd7ff;
-      margin-bottom: 24px;
-    }
+h1 {
+  text-align: center;
+  margin-bottom: 10px;
+}
 
-    .stat {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 10px;
-      font-size: 14px;
-    }
+.subtitle {
+  text-align: center;
+  font-size: 14px;
+  opacity: 0.8;
+  margin-bottom: 25px;
+}
 
-    input {
-      width: 100%;
-      padding: 12px;
-      border-radius: 10px;
-      border: none;
-      margin: 12px 0;
-      font-size: 16px;
-    }
+.row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
 
-    button {
-      width: 100%;
-      padding: 14px;
-      border-radius: 12px;
-      border: none;
-      margin-top: 10px;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-    }
+button {
+  width: 100%;
+  padding: 14px;
+  margin-top: 12px;
+  border-radius: 10px;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+}
 
-    .primary {
-      background: #00d1ff;
-      color: #002b5c;
-    }
+.connect {
+  background: #00cfff;
+  color: #002033;
+  font-weight: bold;
+}
 
-    .secondary {
-      background: #ffffff;
-      color: #002b5c;
-    }
+.stake {
+  background: #00cfff;
+}
 
-    .danger {
-      background: #ff5c5c;
-      color: #ffffff;
-    }
+.claim {
+  background: #ffffff;
+}
 
-    .footer {
-      text-align: center;
-      font-size: 12px;
-      margin-top: 18px;
-      color: #bcd7ff;
-      word-break: break-all;
-    }
-  </style>
+.unstake {
+  background: #ff5b5b;
+}
+
+input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  margin-top: 10px;
+  font-size: 15px;
+}
+
+.footer {
+  font-size: 12px;
+  opacity: 0.7;
+  text-align: center;
+  margin-top: 15px;
+}
+</style>
 </head>
 
 <body>
-  <div class="container">
-    <h1>CMNK Staking</h1>
-    <div class="subtitle">
-      5% APR • No lock time • BNB Chain
-    </div>
 
-    <div class="stat">
-      <span>Your Staked</span>
-      <strong id="yourStaked">-</strong>
-    </div>
+<div class="container">
+  <h1>CMNK Staking</h1>
+  <div class="subtitle">5% APR • No lock • BNB Chain</div>
 
-    <div class="stat">
-      <span>Pending Rewards</span>
-      <strong id="pendingRewards">-</strong>
-    </div>
-
-    <button id="connectWallet" class="primary">
-      Connect Wallet
-    </button>
-
-    <input
-      id="stakeAmount"
-      type="number"
-      placeholder="Amount to stake"
-      disabled
-    />
-
-    <button id="stakeBtn" class="primary" disabled>
-      Stake
-    </button>
-
-    <button id="claimBtn" class="secondary" disabled>
-      Claim Rewards
-    </button>
-
-    <button id="unstakeBtn" class="danger" disabled>
-      Unstake
-    </button>
-
-    <div class="footer">
-      Staking contract:<br>
-      0x07d62b6725f559e4ca7dfc04586c0cf294f58aa9
-    </div>
+  <div class="row">
+    <span>Your Staked</span>
+    <strong id="yourStaked">-</strong>
   </div>
 
-  <!-- ================= SCRIPT ================= -->
+  <div class="row">
+    <span>Pending Rewards</span>
+    <strong id="pendingRewards">-</strong>
+  </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <button id="connectBtn" class="connect">Connect Wallet</button>
 
-  <script>
-    const STAKING_CONTRACT =
-      "0x07d62b6725f559e4ca7dfc04586c0cf294f58aa9";
+  <input id="stakeValue" type="number" placeholder="Amount to stake" />
 
-    const TOKEN_DECIMALS = 18;
+  <button id="stakeBtn" class="stake">Stake</button>
+  <button id="claimBtn" class="claim">Claim Rewards</button>
+  <button id="unstakeBtn" class="unstake">Unstake</button>
 
-    const stakingAbi = [
-      "function stake(uint256 amount)",
-      "function unstake(uint256 amount)",
-      "function claim()",
-      "function pendingRewards(address user) view returns (uint256)",
-      "function stakes(address user) view returns (uint256 amount, uint256 rewardDebt, uint256 lastUpdate)"
-    ];
+  <div class="footer">
+    Staking contract:<br>
+    0x07d62b66725f559e4ca7fdc04586c0cf294f58aa9
+  </div>
+</div>
 
-    let provider;
-    let signer;
-    let staking;
-    let user;
+<script>
+/* ================= CONFIG ================= */
 
-    const connectBtn = document.getElementById("connectWallet");
-    const stakeBtn = document.getElementById("stakeBtn");
-    const claimBtn = document.getElementById("claimBtn");
-    const unstakeBtn = document.getElementById("unstakeBtn");
-    const amountInput = document.getElementById("stakeAmount");
+const STAKING_ADDRESS = "0x07d62b66725f559e4ca7fdc04586c0cf294f58aa9";
+const TOKEN_DECIMALS = 18;
 
-    const stakedEl = document.getElementById("yourStaked");
-    const rewardsEl = document.getElementById("pendingRewards");
+const stakingAbi = [
+  "function stake(uint256 amount)",
+  "function unstake(uint256 amount)",
+  "function claim()",
+  "function pendingRewards(address user) view returns (uint256)",
+  "function stakes(address user) view returns (uint256 amount, uint256 rewardDebt, uint256 lastUpdate)"
+];
 
-    async function connectWallet() {
-      if (!window.ethereum) {
-        alert("MetaMask not found");
-        return;
-      }
+/* ================= STATE ================= */
 
-      provider = new ethers.providers.Web3Provider(window.ethereum);
-      await provider.send("eth_requestAccounts", []);
-      signer = provider.getSigner();
-      user = await signer.getAddress();
+let provider;
+let signer = null;
+let userAddress = null;
+let staking;
 
-      staking = new ethers.Contract(
-        STAKING_CONTRACT,
-        stakingAbi,
-        signer
-      );
+/* ================= UI ================= */
 
-      connectBtn.textContent = "Wallet Connected";
+const btnConnect = document.getElementById("connectBtn");
+const stakeInput = document.getElementById("stakeValue");
+const stakedEl = document.getElementById("yourStaked");
+const rewardsEl = document.getElementById("pendingRewards");
 
-      stakeBtn.disabled = false;
-      claimBtn.disabled = false;
-      unstakeBtn.disabled = false;
-      amountInput.disabled = false;
+/* ================= CONNECT ================= */
 
-      await refreshData();
-    }
+async function connectWallet() {
+  if (!window.ethereum) {
+    alert("Please install MetaMask");
+    return;
+  }
 
-    async function refreshData() {
-      const info = await staking.stakes(user);
-      const rewards = await staking.pendingRewards(user);
+  provider = new ethers.providers.Web3Provider(window.ethereum);
 
-      stakedEl.textContent =
-        ethers.utils.formatUnits(info.amount, TOKEN_DECIMALS);
+  // 🔥 PRAWDZIWE POŁĄCZENIE Z METAMASK
+  await provider.send("eth_requestAccounts", []);
 
-      rewardsEl.textContent =
-        ethers.utils.formatUnits(rewards, TOKEN_DECIMALS);
-    }
+  signer = provider.getSigner();
+  userAddress = await signer.getAddress();
 
-    async function stakeTokens() {
-      if (!signer) await connectWallet();
+  staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, signer);
 
-      const amount = ethers.utils.parseUnits(
-        amountInput.value,
-        TOKEN_DECIMALS
-      );
+  btnConnect.innerText = "Wallet Connected";
+  btnConnect.disabled = true;
 
-      const tx = await staking.stake(amount);
-      await tx.wait();
-      await refreshData();
-    }
+  await refreshData();
+}
 
-    async function claimRewards() {
-      if (!signer) await connectWallet();
-      const tx = await staking.claim();
-      await tx.wait();
-      await refreshData();
-    }
+/* ================= READ DATA ================= */
 
-    async function unstakeTokens() {
-      if (!signer) await connectWallet();
+async function refreshData() {
+  const info = await staking.stakes(userAddress);
+  const rewards = await staking.pendingRewards(userAddress);
 
-      const amount = ethers.utils.parseUnits(
-        amountInput.value,
-        TOKEN_DECIMALS
-      );
+  stakedEl.innerText = ethers.utils.formatUnits(info.amount, TOKEN_DECIMALS);
+  rewardsEl.innerText = ethers.utils.formatUnits(rewards, TOKEN_DECIMALS);
+}
 
-      const tx = await staking.unstake(amount);
-      await tx.wait();
-      await refreshData();
-    }
+/* ================= ACTIONS ================= */
 
-    connectBtn.onclick = connectWallet;
-    stakeBtn.onclick = stakeTokens;
-    claimBtn.onclick = claimRewards;
-    unstakeBtn.onclick = unstakeTokens;
-  </script>
+async function stakeTokens() {
+  if (!signer) {
+    await connectWallet();
+    return;
+  }
+
+  if (!stakeInput.value || stakeInput.value <= 0) {
+    alert("Enter amount");
+    return;
+  }
+
+  const amount = ethers.utils.parseUnits(stakeInput.value, TOKEN_DECIMALS);
+  const tx = await staking.stake(amount);
+  await tx.wait();
+  await refreshData();
+}
+
+async function claimRewards() {
+  if (!signer) {
+    await connectWallet();
+    return;
+  }
+
+  const tx = await staking.claim();
+  await tx.wait();
+  await refreshData();
+}
+
+async function unstakeTokens() {
+  if (!signer) {
+    await connectWallet();
+    return;
+  }
+
+  if (!stakeInput.value || stakeInput.value <= 0) {
+    alert("Enter amount");
+    return;
+  }
+
+  const amount = ethers.utils.parseUnits(stakeInput.value, TOKEN_DECIMALS);
+  const tx = await staking.unstake(amount);
+  await tx.wait();
+  await refreshData();
+}
+
+/* ================= EVENTS ================= */
+
+btnConnect.onclick = connectWallet;
+document.getElementById("stakeBtn").onclick = stakeTokens;
+document.getElementById("claimBtn").onclick = claimRewards;
+document.getElementById("unstakeBtn").onclick = unstakeTokens;
+
+</script>
+
 </body>
 </html>
