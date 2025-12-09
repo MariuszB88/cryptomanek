@@ -1,158 +1,117 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>CMNK Staking</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8" />
+  <title>CMNK Staking</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <!-- Ethers v5 -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 
-<style>
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: linear-gradient(135deg, #0a2540, #0b3d91);
-  color: #fff;
-}
-.container {
-  max-width: 420px;
-  margin: 60px auto;
-  padding: 24px;
-  background: rgba(255,255,255,0.06);
-  border-radius: 16px;
-}
-button, input {
-  width: 100%;
-  padding: 14px;
-  margin-top: 10px;
-  border-radius: 12px;
-  border: none;
-  font-size: 16px;
-}
-button {
-  background: #00ccff;
-  font-weight: bold;
-  cursor: pointer;
-}
-.secondary { background: #fff; color:#002b5c; }
-.danger { background:#ff5c5c; color:#fff; }
-.stat { display:flex; justify-content:space-between; margin-top:8px; }
-</style>
+  <style>
+    body {
+      background: #0a1733;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      color: #fff;
+    }
+    .card {
+      background: #102a54;
+      padding: 30px;
+      border-radius: 12px;
+      width: 340px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,.4);
+    }
+    h1 {
+      margin-top: 0;
+      margin-bottom: 10px;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+      background: #00cfff;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #3a5c78;
+      color: #ccc;
+      cursor: default;
+    }
+    .status {
+      margin-top: 15px;
+      font-size: 14px;
+      opacity: 0.9;
+      word-break: break-all;
+    }
+  </style>
 </head>
-
 <body>
-<div class="container">
-  <h1 style="text-align:center">CMNK Staking</h1>
-  <div class="stat"><span>Your Staked</span><strong id="staked">-</strong></div>
-  <div class="stat"><span>Pending Rewards</span><strong id="rewards">-</strong></div>
 
-  <button id="connectBtn">Connect Wallet</button>
+  <div class="card">
+    <h1>CMNK Staking</h1>
+    <p>BNB Chain</p>
 
-  <input id="amountInput" type="number" placeholder="Amount to stake" disabled />
-  <button id="stakeBtn" disabled>Stake</button>
-  <button id="claimBtn" class="secondary" disabled>Claim</button>
-  <button id="unstakeBtn" class="danger" disabled>Unstake</button>
+    <button id="connectBtn">Connect Wallet</button>
 
-  <p style="font-size:12px;opacity:.7;margin-top:12px">
-    Staking contract:<br>
-    0x07d62b6725f559e4ca7dfc04586c0cf294f58aa9
-  </p>
-</div>
+    <div class="status" id="statusText">
+      Wallet disconnected
+    </div>
+  </div>
 
 <script>
-/* ================= CONFIG ================= */
-const STAKING_ADDRESS = "0x07d62b6725f559e4ca7dfc04586c0cf294f58aa9";
-const TOKEN_ADDRESS   = "0xd17c85824eB60d40D332e64B0167E0B4029F49BA";
+/* =====================================================
+   CMNK – CLEAN CONNECT ONLY
+   NO AUTO CONNECT
+   NO CONTRACT
+===================================================== */
 
-/* ================= ABI ================= */
-const stakingAbi = [
-  "function stake(uint256)",
-  "function unstake(uint256)",
-  "function claim()",
-  "function pendingRewards(address) view returns (uint256)",
-  "function stakes(address) view returns (uint256 amount, uint256 rewardDebt, uint256 lastUpdate)"
-];
+let provider = null;
+let signer = null;
+let account = null;
 
-const erc20Abi = [
-  "function approve(address,uint256) returns (bool)"
-];
+async function connectWallet() {
+  try {
+    if (typeof window.ethereum === "undefined") {
+      alert("MetaMask not detected");
+      return;
+    }
 
-/* ================= STATE ================= */
-let provider, signer, user, staking, token;
+    // 👉 MetaMask popup TYLKO po kliknięciu
+    const accounts = await window.ethereum.request({
+      method: "eth_requestAccounts"
+    });
 
-/* ================= ELEMENTS ================= */
-const connectBtn = document.getElementById("connectBtn");
-const stakeBtn   = document.getElementById("stakeBtn");
-const claimBtn   = document.getElementById("claimBtn");
-const unstakeBtn = document.getElementById("unstakeBtn");
-const amountIn   = document.getElementById("amountInput");
+    account = accounts[0];
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    signer = provider.getSigner();
 
-/* ================= CONNECT ================= */
-connectBtn.onclick = async () => {
-  if (!window.ethereum) {
-    alert("MetaMask not found");
-    return;
+    console.log("✅ Wallet connected:", account);
+
+    document.getElementById("connectBtn").innerText = "Wallet Connected";
+    document.getElementById("connectBtn").disabled = true;
+    document.getElementById("statusText").innerText =
+      "Connected: " + account;
+
+  } catch (err) {
+    console.error("❌ Connection error:", err);
   }
-
-  provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-  await provider.send("eth_requestAccounts", []);
-
-  signer = provider.getSigner();
-  user   = await signer.getAddress();
-
-  staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, signer);
-  token   = new ethers.Contract(TOKEN_ADDRESS, erc20Abi, signer);
-
-  connectBtn.innerText = "Wallet Connected";
-  connectBtn.disabled = true;
-
-  amountIn.disabled = false;
-  stakeBtn.disabled = false;
-  claimBtn.disabled = false;
-  unstakeBtn.disabled = false;
-
-  await refreshUI();
-};
-
-/* ================= READ ================= */
-async function refreshUI() {
-  const s = await staking.stakes(user);
-  const r = await staking.pendingRewards(user);
-
-  document.getElementById("staked").innerText =
-    ethers.utils.formatUnits(s.amount, 18);
-
-  document.getElementById("rewards").innerText =
-    ethers.utils.formatUnits(r, 18);
 }
 
-/* ================= STAKE ================= */
-stakeBtn.onclick = async () => {
-  const amount = amountIn.value;
-  if (!amount) return;
-
-  const value = ethers.utils.parseUnits(amount, 18);
-  await token.approve(STAKING_ADDRESS, value);
-  await staking.stake(value);
-
-  await refreshUI();
-};
-
-/* ================= CLAIM ================= */
-claimBtn.onclick = async () => {
-  await staking.claim();
-  await refreshUI();
-};
-
-/* ================= UNSTAKE ================= */
-unstakeBtn.onclick = async () => {
-  const amount = amountIn.value;
-  if (!amount) return;
-
-  const value = ethers.utils.parseUnits(amount, 18);
-  await staking.unstake(value);
-  await refreshUI();
-};
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("connectBtn");
+  btn.addEventListener("click", connectWallet);
+});
 </script>
+
 </body>
 </html>
