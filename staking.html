@@ -2,162 +2,288 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>CMNK Staking</title>
+  <title>CMNK Staking – Connect & Read</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-
   <style>
-    body {
+    * {
+      box-sizing: border-box;
       margin: 0;
-      background: linear-gradient(180deg, #061a3a, #020d1f);
+      padding: 0;
+    }
+
+    body {
       font-family: Arial, sans-serif;
-      color: #fff;
+      background: radial-gradient(circle at top, #0b3d91 0, #020817 55%, #000000 100%);
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .card {
+      background: rgba(7, 17, 40, 0.96);
+      border-radius: 18px;
+      padding: 28px 32px;
       width: 360px;
-      margin: 120px auto;
-      padding: 30px;
-      background: #0d2b55;
-      border-radius: 12px;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.55);
       text-align: center;
-      box-shadow: 0 20px 40px rgba(0,0,0,.4);
     }
 
     h1 {
-      margin-top: 0;
+      font-size: 26px;
+      margin-bottom: 4px;
     }
 
-    .btn {
-      margin-top: 20px;
-      width: 100%;
-      padding: 14px;
-      font-size: 16px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      background: #00cfff;
-      color: #002033;
-      font-weight: bold;
-    }
-
-    .btn:disabled {
-      background: #2c4a66;
-      cursor: not-allowed;
-      color: #aaa;
-    }
-
-    .info {
-      margin-top: 15px;
-      font-size: 14px;
-      color: #bcd7ff;
-      word-break: break-all;
+    .subtitle {
+      font-size: 13px;
+      color: #9fb6ff;
+      margin-bottom: 22px;
     }
 
     .row {
       display: flex;
       justify-content: space-between;
-      margin-top: 12px;
-      font-size: 14px;
+      align-items: center;
+      margin-bottom: 10px;
+      font-size: 15px;
+    }
+
+    .label {
+      color: #c9d7ff;
+    }
+
+    .value {
+      font-weight: bold;
+    }
+
+    .muted {
+      color: #7d8bb3;
+      font-size: 12px;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 18px;
+      padding: 12px;
+      border: none;
+      border-radius: 999px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.05s ease, box-shadow 0.1s ease, opacity 0.1s ease;
+    }
+
+    button.primary {
+      background: #00c8ff;
+      color: #041023;
+      box-shadow: 0 10px 25px rgba(0, 200, 255, 0.35);
+    }
+
+    button.primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 30px rgba(0, 200, 255, 0.45);
+    }
+
+    button:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .status {
+      margin-top: 14px;
+      font-size: 12px;
+      color: #9fb6ff;
+      word-break: break-all;
+    }
+
+    .error {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #ff8080;
     }
   </style>
 </head>
-
 <body>
   <div class="card">
     <h1>CMNK Staking</h1>
-    <div class="info">BNB Chain</div>
+    <div class="subtitle">BNB Chain • Read-only dashboard</div>
 
     <div class="row">
-      <span>Your Staked</span>
-      <span id="staked">-</span>
+      <span class="label">Your Staked</span>
+      <span id="stakedValue" class="value">-</span>
     </div>
 
-    <div class="row">
-      <span>Pending Rewards</span>
-      <span id="rewards">-</span>
+    <div class="row" style="margin-bottom: 18px;">
+      <span class="label">Pending Rewards</span>
+      <span id="rewardsValue" class="value">-</span>
     </div>
 
-    <button id="connectBtn" class="btn" onclick="connectWallet()">
-      Connect Wallet
-    </button>
+    <button id="connectBtn" class="primary">Connect Wallet</button>
 
-    <div id="status" class="info">Wallet disconnected</div>
+    <div id="statusLine" class="status">Wallet disconnected</div>
+    <div id="errorLine" class="error"></div>
   </div>
 
-<script>
-/* ================== CONFIG ================== */
+  <!-- ethers.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"
+          integrity="sha384-GPtCqQfgEaZtH7922bxo97lbmxO8Z8fNcA7Z4rR5z3nvhdgRIFR1zSYnV+YFZ1oU"
+          crossorigin="anonymous"></script>
 
-const STAKING_CONTRACT = "0x07d62b6725f59e4ca7dfc04586c0cf294f58aa9";
+  <script>
+    // --------- KONFIGURACJA ---------
+    const STAKING_ADDRESS = "0x07d62b6725f559e4ca7dfc04586c0cf294f58aa9"; // staking
+    // Token adres na przyszłość:
+    // const TOKEN_ADDRESS   = "0xd17c85824eB60d40D332e64B0167E0B4029F49BA";
 
-const STAKING_ABI = [
-  "function stakes(address) view returns (uint256 amount, uint256 rewardDebt, uint256 lastUpdate)",
-  "function pendingRewards(address user) view returns (uint256)"
-];
+    // Minimalne ABI do odczytu:
+    const stakingAbi = [
+      {
+        "inputs":[{"internalType":"address","name":"_token","type":"address"}],
+        "stateMutability":"nonpayable",
+        "type":"constructor"
+      },
+      {
+        "inputs":[{"internalType":"address","name":"user","type":"address"}],
+        "name":"pendingRewards",
+        "outputs":[{"internalType":"uint256","name":"","type":"uint256"}],
+        "stateMutability":"view",
+        "type":"function"
+      },
+      {
+        "inputs":[{"internalType":"address","name":"","type":"address"}],
+        "name":"stakes",
+        "outputs":[
+          {"internalType":"uint256","name":"amount","type":"uint256"},
+          {"internalType":"uint256","name":"rewardDebt","type":"uint256"},
+          {"internalType":"uint256","name":"lastUpdate","type":"uint256"}
+        ],
+        "stateMutability":"view",
+        "type":"function"
+      }
+    ];
 
-/* ================== GLOBALS ================== */
+    // --------- ZMIENNE GLOBALNE ---------
+    let provider = null;
+    let stakingContract = null;
+    let currentAccount = null;
 
-let provider;
-let signer;
-let user;
-let staking;
+    const connectBtn   = document.getElementById("connectBtn");
+    const stakedValue  = document.getElementById("stakedValue");
+    const rewardsValue = document.getElementById("rewardsValue");
+    const statusLine   = document.getElementById("statusLine");
+    const errorLine    = document.getElementById("errorLine");
 
-/* ================== CONNECT ================== */
+    // Pomocnicze – skrócony adres w UI
+    function shorten(addr) {
+      if (!addr) return "";
+      return addr.substring(0, 6) + "..." + addr.substring(addr.length - 4);
+    }
 
-async function connectWallet() {
-  if (!window.ethereum) {
-    alert("MetaMask not detected");
-    return;
-  }
+    function setError(msg) {
+      console.error(msg);
+      errorLine.textContent = msg || "";
+    }
 
-  try {
-    // 🔑 TYLKO TO otwiera popup MetaMask
-    await window.ethereum.request({ method: "eth_requestAccounts" });
+    // --------- CONNECT WALLET ---------
+    async function connectWallet() {
+      setError("");
 
-    provider = new ethers.providers.Web3Provider(window.ethereum);
-    signer = provider.getSigner();
-    user = await signer.getAddress();
+      if (!window.ethereum) {
+        setError("MetaMask (lub inny wallet) nie jest zainstalowany.");
+        return;
+      }
 
-    staking = new ethers.Contract(
-      STAKING_CONTRACT,
-      STAKING_ABI,
-      provider // READ-ONLY
-    );
+      try {
+        // To wywołanie powinno, jeśli trzeba, otworzyć okno MetaMask:
+        const accounts = await window.ethereum.request({
+          method: "eth_requestAccounts"
+        });
 
-    document.getElementById("connectBtn").innerText = "Wallet Connected";
-    document.getElementById("connectBtn").disabled = true;
-    document.getElementById("status").innerText =
-      "Connected: " + user.slice(0, 6) + "..." + user.slice(-4);
+        if (!accounts || accounts.length === 0) {
+          setError("Brak dostępnych kont w portfelu.");
+          return;
+        }
 
-    console.log("✅ Connected:", user);
+        // Użyj ethers do pracy z providerem
+        provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+        currentAccount = ethers.utils.getAddress(accounts[0]); // normalizuje adres
 
-    await loadReadData();
+        // Kontrakt tylko do odczytu (provider, nie signer)
+        stakingContract = new ethers.Contract(
+          STAKING_ADDRESS,
+          stakingAbi,
+          provider
+        );
 
-  } catch (err) {
-    console.error("❌ User rejected connection", err);
-  }
-}
+        console.log("Wallet connected:", currentAccount);
 
-/* ================== READ DATA ================== */
+        connectBtn.textContent = "Wallet Connected";
+        statusLine.textContent = "Connected: " + currentAccount;
 
-async function loadReadData() {
-  try {
-    const stakeData = await staking.stakes(user);
-    const pending = await staking.pendingRewards(user);
+        // Po połączeniu od razu odczytujemy dane
+        await refreshUserData();
+      } catch (err) {
+        console.error("Connect error:", err);
+        setError("Connect error: " + (err && err.message ? err.message : err));
+      }
+    }
 
-    document.getElementById("staked").innerText =
-      ethers.utils.formatEther(stakeData.amount);
+    // --------- ODCZYT STANU UŻYTKOWNIKA ---------
+    async function refreshUserData() {
+      if (!stakingContract || !currentAccount) {
+        return;
+      }
 
-    document.getElementById("rewards").innerText =
-      ethers.utils.formatEther(pending);
+      try {
+        // najważniejsze: przekazujemy *adres użytkownika*,
+        // NIE adres kontraktu stakingu!
+        const stakeInfo = await stakingContract.stakes(currentAccount);
+        const pending   = await stakingContract.pendingRewards(currentAccount);
 
-    console.log("✅ Read data OK");
+        // Zakładam 18 miejsc po przecinku (standard ERC-20 / BEP-20)
+        const stakedCMNK  = ethers.utils.formatUnits(stakeInfo.amount, 18);
+        const rewardCMNK  = ethers.utils.formatUnits(pending, 18);
 
-  } catch (err) {
-    console.error("❌ Read failed", err);
-  }
-}
-</script>
+        stakedValue.textContent  = Number(stakedCMNK).toLocaleString("en-US", { maximumFractionDigits: 4 });
+        rewardsValue.textContent = Number(rewardCMNK).toLocaleString("en-US", { maximumFractionDigits: 6 });
+
+        console.log("Stake amount:", stakedCMNK, "CMNK");
+        console.log("Pending rewards:", rewardCMNK, "CMNK");
+      } catch (err) {
+        console.error("Read failed:", err);
+        setError("Read failed: " + (err && err.message ? err.message : err));
+        stakedValue.textContent  = "-";
+        rewardsValue.textContent = "-";
+      }
+    }
+
+    // --------- NASŁUCH ZMIAN KONTA / SIECI ---------
+    if (window.ethereum) {
+      window.ethereum.on("accountsChanged", (accounts) => {
+        if (!accounts || accounts.length === 0) {
+          currentAccount = null;
+          connectBtn.textContent = "Connect Wallet";
+          statusLine.textContent = "Wallet disconnected";
+          stakedValue.textContent  = "-";
+          rewardsValue.textContent = "-";
+        } else {
+          currentAccount = ethers.utils.getAddress(accounts[0]);
+          statusLine.textContent = "Connected: " + currentAccount;
+          refreshUserData();
+        }
+      });
+
+      window.ethereum.on("chainChanged", () => {
+        // prosto: przeładuj UI po zmianie sieci
+        window.location.reload();
+      });
+    }
+
+    // --------- HANDLER PRZYCISKU ---------
+    connectBtn.addEventListener("click", connectWallet);
+  </script>
 </body>
 </html>
