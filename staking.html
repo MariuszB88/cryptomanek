@@ -1,139 +1,197 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>CMNK Staking – Read only</title>
+  <title>CMNK Staking</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- ✅ JEDYNY POPRAWNY CDN ethers v5 -->
+  <!-- Ethers v5 – STABILNA -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 
   <style>
     body {
-      margin: 0;
-      height: 100vh;
-      background: linear-gradient(180deg, #0b2a4a, #041527);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      background: linear-gradient(180deg, #0a2342, #000);
       font-family: Arial, sans-serif;
-      color: white;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
     }
     .card {
-      background: #0e2f55;
+      background: #0e2a4d;
       padding: 30px;
-      border-radius: 16px;
+      border-radius: 12px;
       width: 360px;
       text-align: center;
-      box-shadow: 0 20px 40px rgba(0,0,0,.4);
+      box-shadow: 0 0 40px rgba(0,0,0,0.6);
     }
     button {
       width: 100%;
-      padding: 14px;
+      padding: 12px;
+      margin-top: 10px;
       border: none;
-      border-radius: 10px;
-      background: #00c9ff;
+      border-radius: 8px;
       font-size: 16px;
-      font-weight: bold;
       cursor: pointer;
     }
-    .small {
-      font-size: 13px;
-      opacity: .8;
+    .primary { background: #00cfff; color: #000; }
+    .danger { background: #ff5c5c; color: #000; }
+    input {
+      width: 100%;
+      padding: 10px;
       margin-top: 10px;
-      word-break: break-all;
+      border-radius: 6px;
+      border: none;
+      font-size: 15px;
     }
-    .error {
-      color: #ff6b6b;
-      margin-top: 12px;
+    .status {
+      margin-top: 10px;
       font-size: 13px;
+      color: #ccc;
+      word-break: break-all;
     }
   </style>
 </head>
-
 <body>
-  <div class="card">
-    <h2>CMNK Staking</h2>
-    <div class="small">BNB Chain – Read only</div>
 
-    <p>Your Staked: <span id="staked">-</span></p>
-    <p>Pending Rewards: <span id="rewards">-</span></p>
+<div class="card">
+  <h2>CMNK Staking</h2>
+  <p>BNB Chain</p>
 
-    <button id="connectBtn">Connect Wallet</button>
+  <p>Your Staked: <span id="staked">-</span></p>
+  <p>Pending Rewards: <span id="rewards">-</span></p>
 
-    <div class="small" id="status">Wallet disconnected</div>
-    <div class="error" id="error"></div>
-  </div>
+  <button class="primary" id="connectBtn">Connect Wallet</button>
+
+  <input type="text" id="amount" placeholder="Amount to stake" />
+
+  <button class="primary" id="stakeBtn">Stake</button>
+  <button class="primary" id="claimBtn">Claim Rewards</button>
+  <button class="danger" id="unstakeBtn">Unstake</button>
+
+  <div class="status" id="status">Wallet disconnected</div>
+</div>
 
 <script>
-  const STAKING_ADDRESS = "0x07d62b6725f59e4ca7dfc04586c0cf294f58aa9";
+/* ================= CONFIG ================= */
 
-  const STAKING_ABI = [
-    {
-      "inputs":[{"internalType":"address","name":"user","type":"address"}],
-      "name":"pendingRewards",
-      "outputs":[{"internalType":"uint256","name":"","type":"uint256"}],
-      "stateMutability":"view",
-      "type":"function"
-    },
-    {
-      "inputs":[{"internalType":"address","name":"","type":"address"}],
-      "name":"stakes",
-      "outputs":[
-        {"internalType":"uint256","name":"amount","type":"uint256"},
-        {"internalType":"uint256","name":"rewardDebt","type":"uint256"},
-        {"internalType":"uint256","name":"lastUpdate","type":"uint256"}
-      ],
-      "stateMutability":"view",
-      "type":"function"
-    }
-  ];
+const STAKING_CONTRACT_ADDRESS = "0xYOUR_STAKING_CONTRACT";
 
-  const connectBtn = document.getElementById("connectBtn");
-  const statusEl = document.getElementById("status");
-  const errorEl = document.getElementById("error");
+/* PRZYKŁADOWE ABI – DOSTOSUJ DO SWOJEGO KONTRAKTU */
+const STAKING_ABI = [
+  "function stake(uint256 amount)",
+  "function unstake()",
+  "function claim()",
+  "function stakedBalance(address user) view returns (uint256)",
+  "function pendingRewards(address user) view returns (uint256)"
+];
 
-  connectBtn.onclick = async () => {
-    errorEl.textContent = "";
+/* ================= GLOBALS ================= */
 
-    try {
-      if (!window.ethereum) {
-        throw new Error("MetaMask not detected");
-      }
+let provider;
+let signer;
+let contract;
+let userAddress;
 
-      console.log("Requesting MetaMask connection...");
-      const accounts = await window.ethereum.request({
-        method: "eth_requestAccounts"
-      });
+/* ================= HELPERS ================= */
 
-      const account = accounts[0];
-      statusEl.textContent = "Connected: " + account;
+function setStatus(msg) {
+  document.getElementById("status").innerText = msg;
+}
 
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const staking = new ethers.Contract(
-        STAKING_ADDRESS,
-        STAKING_ABI,
-        provider
-      );
+/* ================= CONNECT ================= */
 
-      const stakeInfo = await staking.stakes(account);
-      const pending = await staking.pendingRewards(account);
+async function connectWallet() {
+  if (!window.ethereum) {
+    alert("MetaMask not installed");
+    return;
+  }
 
-      document.getElementById("staked").textContent =
-        ethers.utils.formatUnits(stakeInfo.amount, 18);
+  provider = new ethers.providers.Web3Provider(window.ethereum);
 
-      document.getElementById("rewards").textContent =
-        ethers.utils.formatUnits(pending, 18);
+  // 🔴 TO ZAWSZE WYWOŁUJE POPUP (jeśli strona nie jest zapamiętana)
+  await provider.send("eth_requestAccounts", []);
 
-      connectBtn.textContent = "Wallet Connected";
-      connectBtn.disabled = true;
+  signer = provider.getSigner();
+  userAddress = await signer.getAddress();
 
-      console.log("Read OK");
+  contract = new ethers.Contract(
+    STAKING_CONTRACT_ADDRESS,
+    STAKING_ABI,
+    signer
+  );
 
-    } catch (err) {
-      console.error(err);
-      errorEl.textContent = err.message;
-    }
-  };
+  setStatus("Connected: " + userAddress);
+  await readData();
+}
+
+/* ================= READ ================= */
+
+async function readData() {
+  if (!contract || !userAddress) return;
+
+  try {
+    const staked = await contract.stakedBalance(userAddress);
+    const rewards = await contract.pendingRewards(userAddress);
+
+    document.getElementById("staked").innerText =
+      ethers.utils.formatUnits(staked, 18);
+
+    document.getElementById("rewards").innerText =
+      ethers.utils.formatUnits(rewards, 18);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+/* ================= ACTIONS ================= */
+
+async function stake() {
+  if (!contract) await connectWallet();
+
+  const amount = document.getElementById("amount").value;
+  if (!amount || isNaN(amount)) return alert("Invalid amount");
+
+  const tx = await contract.stake(
+    ethers.utils.parseUnits(amount, 18)
+  );
+
+  setStatus("Staking...");
+  await tx.wait();
+  setStatus("Stake successful");
+  await readData();
+}
+
+async function claim() {
+  if (!contract) await connectWallet();
+
+  const tx = await contract.claim();
+  setStatus("Claiming...");
+  await tx.wait();
+  setStatus("Rewards claimed");
+  await readData();
+}
+
+async function unstake() {
+  if (!contract) await connectWallet();
+
+  const tx = await contract.unstake();
+  setStatus("Unstaking...");
+  await tx.wait();
+  setStatus("Unstaked");
+  await readData();
+}
+
+/* ================= EVENTS ================= */
+
+document.getElementById("connectBtn").onclick = connectWallet;
+document.getElementById("stakeBtn").onclick = stake;
+document.getElementById("claimBtn").onclick = claim;
+document.getElementById("unstakeBtn").onclick = unstake;
+
 </script>
+
 </body>
 </html>
