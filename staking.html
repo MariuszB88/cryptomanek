@@ -1,185 +1,173 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>CMNK Staking</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="UTF-8" />
+<title>CMNK Staking</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Ethers v5 (SPRAWDZONY CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+<!-- ethers v5 – STABILNA WERSJA -->
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 
-  <style>
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: radial-gradient(circle at top, #0b2a4a, #000814);
-      font-family: Arial, sans-serif;
-      color: #fff;
-    }
-    .card {
-      background: #0e2a4d;
-      padding: 30px;
-      border-radius: 16px;
-      width: 320px;
-      text-align: center;
-      box-shadow: 0 20px 40px rgba(0,0,0,.5);
-    }
-    h1 { margin-top: 0; }
-    input {
-      width: 100%;
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 8px;
-      border: none;
-    }
-    button {
-      width: 100%;
-      padding: 12px;
-      margin: 8px 0;
-      border-radius: 10px;
-      border: none;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    .blue { background:#00cfff; }
-    .red { background:#ff5c5c; }
-    .status {
-      font-size: 12px;
-      margin-top: 10px;
-      opacity: .8;
-    }
-    .error {
-      color:#ff6b6b;
-      font-size:12px;
-      margin-top:10px;
-    }
-  </style>
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: radial-gradient(circle at top, #0b3a6e, #000);
+  color: #fff;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card {
+  background: #0e2a4f;
+  padding: 30px;
+  width: 340px;
+  border-radius: 14px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,.4);
+}
+
+h2 { margin-top: 0; }
+
+button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.connect { background: #00c9ff; }
+.action { background: #00c9ff; }
+.unstake { background: #ff5c5c; }
+
+input {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 6px;
+  border: none;
+}
+
+.small {
+  font-size: 13px;
+  opacity: .8;
+  margin-top: 8px;
+}
+
+.error {
+  color: #ff6b6b;
+  font-size: 13px;
+  margin-top: 8px;
+}
+</style>
 </head>
+
 <body>
-
 <div class="card">
-  <h1>CMNK Staking</h1>
-  <div>BNB Chain</div><br>
+  <h2>CMNK Staking</h2>
+  <div>BNB Chain</div>
 
-  <div>Your Staked: <span id="staked">-</span></div>
-  <div>Pending Rewards: <span id="rewards">-</span></div><br>
+  <p>Your Staked: <span id="staked">-</span></p>
+  <p>Pending Rewards: <span id="rewards">-</span></p>
 
-  <button class="blue" onclick="connectWallet()">Connect Wallet</button>
+  <button class="connect" onclick="connectWallet()">Connect Wallet</button>
 
   <input id="amount" placeholder="Amount to stake" />
 
-  <button class="blue" onclick="stake()">Stake</button>
-  <button class="blue" onclick="claim()">Claim Rewards</button>
-  <button class="red" onclick="unstake()">Unstake</button>
+  <button class="action" onclick="stake()">Stake</button>
+  <button class="action" onclick="claim()">Claim Rewards</button>
+  <button class="unstake" onclick="unstake()">Unstake</button>
 
-  <div class="status" id="status">Wallet disconnected</div>
+  <div class="small" id="status">Wallet disconnected</div>
   <div class="error" id="error"></div>
 </div>
 
 <script>
 /* ================== CONFIG ================== */
 
-// 🔴 WSTAW POPRAWNY ADRES (42 znaki!)
-const STAKING_CONTRACT_ADDRESS = "0xXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+// ⬇️ TWÓJ KONTRAKT STAKING
+const STAKING_ADDRESS = "0x07d62b672f559e4ca7dfc04586c0cf294f58aa9";
 
-// 🔴 WSTAW TEN SAM ABI, KTÓREGO UŻYWAŁEŚ WCZEŚNIEJ
-const STAKING_ABI = [
+// ⬇️ ABI – TEN SAM, KTÓRY DZIAŁAŁ WCZEŚNIEJ
+const ABI = [
   "function stake(uint256 amount)",
-  "function unstake()",
-  "function claim()",
-  "function stakedBalance(address) view returns (uint256)",
+  "function unstake(uint256 amount)",
+  "function claimRewards()",
+  "function userInfo(address) view returns (uint256 amount)",
   "function pendingRewards(address) view returns (uint256)"
 ];
 
-/* ================== GLOBALS ================== */
-let provider;
-let signer;
-let contract;
-let userAddress;
+let provider, signer, contract, user;
 
 /* ================== CONNECT ================== */
+
 async function connectWallet() {
   try {
-    if (!window.ethereum) throw "MetaMask not found";
+    if (!window.ethereum) throw "MetaMask not installed";
 
     provider = new ethers.providers.Web3Provider(window.ethereum);
     await provider.send("eth_requestAccounts", []);
-
     signer = provider.getSigner();
-    userAddress = await signer.getAddress();
+    user = await signer.getAddress();
 
-    contract = new ethers.Contract(
-      STAKING_CONTRACT_ADDRESS,
-      STAKING_ABI,
-      signer
-    );
+    contract = new ethers.Contract(STAKING_ADDRESS, ABI, signer);
 
     document.getElementById("status").innerText =
-      "Connected: " + userAddress.slice(0,6) + "..." + userAddress.slice(-4);
+      "Connected: " + user.slice(0,6) + "..." + user.slice(-4);
 
-    document.getElementById("error").innerText = "";
-
-    await refreshData();
-
-  } catch (err) {
-    document.getElementById("error").innerText = err.toString();
+    readData();
+  } catch (e) {
+    document.getElementById("error").innerText = e.message || e;
   }
 }
 
 /* ================== READ ================== */
-async function refreshData() {
+
+async function readData() {
   try {
-    const staked = await contract.stakedBalance(userAddress);
-    const rewards = await contract.pendingRewards(userAddress);
+    const info = await contract.userInfo(user);
+    const rewards = await contract.pendingRewards(user);
 
     document.getElementById("staked").innerText =
-      ethers.utils.formatUnits(staked, 18);
+      ethers.utils.formatUnits(info.amount, 18);
 
     document.getElementById("rewards").innerText =
       ethers.utils.formatUnits(rewards, 18);
-
-  } catch (err) {
-    document.getElementById("error").innerText = err.toString();
+  } catch (e) {
+    document.getElementById("error").innerText = "Read failed: " + e;
   }
 }
 
 /* ================== ACTIONS ================== */
+
 async function stake() {
-  try {
-    const amount = document.getElementById("amount").value;
-    const tx = await contract.stake(
-      ethers.utils.parseUnits(amount, 18)
-    );
-    await tx.wait();
-    refreshData();
-  } catch (err) {
-    document.getElementById("error").innerText = err.toString();
-  }
+  const val = document.getElementById("amount").value;
+  if (!val) return;
+
+  const tx = await contract.stake(
+    ethers.utils.parseUnits(val, 18)
+  );
+  await tx.wait();
+  readData();
 }
 
 async function claim() {
-  try {
-    const tx = await contract.claim();
-    await tx.wait();
-    refreshData();
-  } catch (err) {
-    document.getElementById("error").innerText = err.toString();
-  }
+  const tx = await contract.claimRewards();
+  await tx.wait();
+  readData();
 }
 
 async function unstake() {
-  try {
-    const tx = await contract.unstake();
-    await tx.wait();
-    refreshData();
-  } catch (err) {
-    document.getElementById("error").innerText = err.toString();
-  }
+  const info = await contract.userInfo(user);
+  const tx = await contract.unstake(info.amount);
+  await tx.wait();
+  readData();
 }
 </script>
-
 </body>
 </html>
