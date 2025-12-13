@@ -1,19 +1,17 @@
 <!doctype html>
-<html lang="pl">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>CMNK Staking</title>
 
-  <!-- ✅ Ethers v5 (działa na GitHub Pages) -->
+  <!-- Ethers v5 (works on GitHub Pages) -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 
   <style>
     :root{
       --bg1:#04162c;
       --bg2:#0a2a4f;
-      --card:#0b2747;
-      --card2:#0a2340;
       --cyan:#00c8ff;
       --cyan2:#00b7ea;
       --white:#eaf6ff;
@@ -34,7 +32,7 @@
       background: radial-gradient(1200px 600px at 50% 30%, var(--bg2), var(--bg1));
     }
     .card{
-      width:min(520px, 92vw);
+      width:min(560px, 92vw);
       background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
       border:1px solid rgba(255,255,255,.08);
       box-shadow:var(--shadow);
@@ -58,23 +56,33 @@
     }
     .sub{
       text-align:center;
-      margin:0 0 22px;
+      margin:0 0 14px;
       color:var(--muted);
       font-weight:600;
       font-size:14px;
+    }
+    .pillWrap{display:flex; justify-content:center; gap:10px; flex-wrap:wrap; margin: 0 0 12px;}
+    .pill{
+      display:inline-block;
+      padding:6px 10px;
+      border-radius:999px;
+      background: rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.08);
+      font-size:12px;
+      color:var(--muted);
     }
     .rows{
       display:grid;
       grid-template-columns: 1fr auto;
       row-gap:10px;
       column-gap:14px;
-      margin:12px 0 18px;
+      margin:12px 0 14px;
       padding:14px 14px;
       border-radius:12px;
       background: rgba(0,0,0,.14);
       border:1px solid rgba(255,255,255,.06);
     }
-    .label{color:var(--white); font-weight:700}
+    .label{color:var(--white); font-weight:800}
     .val{color:var(--white); font-variant-numeric: tabular-nums; text-align:right}
     .btn{
       width:100%;
@@ -103,6 +111,12 @@
       border:1px solid rgba(0,200,255,.35);
       box-shadow:none;
     }
+    .btn.ghost{
+      background: rgba(255,255,255,.06);
+      color:var(--white);
+      border:1px solid rgba(255,255,255,.14);
+      box-shadow:none;
+    }
     .btn.danger{
       background: linear-gradient(180deg, var(--danger), #ff3d3d);
       color:#240000;
@@ -119,6 +133,12 @@
       font-size:16px;
       outline:none;
     }
+    .rowBtns{
+      display:flex;
+      gap:10px;
+      margin-top:10px;
+    }
+    .rowBtns .btn{margin-top:0}
     .status{
       margin-top:14px;
       text-align:center;
@@ -135,42 +155,76 @@
       color:rgba(255,255,255,.55);
       font-size:12px;
       word-break:break-all;
+      line-height: 1.35;
     }
-    .pill{
-      display:inline-block;
-      padding:6px 10px;
-      border-radius:999px;
-      background: rgba(0,0,0,.18);
-      border:1px solid rgba(255,255,255,.08);
+    .links{
+      margin-top: 10px;
+      text-align:center;
       font-size:12px;
-      color:var(--muted);
-      margin: 0 auto 10px;
+      color: rgba(255,255,255,.75);
     }
-    .center{display:flex; justify-content:center}
+    .links a{color: #9fe3ff; text-decoration:none}
+    .links a:hover{text-decoration:underline}
+    .hr{
+      height:1px;
+      background: rgba(255,255,255,.10);
+      border:0;
+      margin: 14px 0 10px;
+    }
   </style>
 </head>
+
 <body>
   <div class="card">
     <div class="inner">
       <h1>CMNK Staking</h1>
       <div class="sub">BNB Chain</div>
 
-      <div class="center"><div id="netPill" class="pill">Network: -</div></div>
+      <div class="pillWrap">
+        <div id="netPill" class="pill">Network: -</div>
+        <div id="autoPill" class="pill">Auto-refresh: off</div>
+      </div>
 
       <div class="rows">
         <div class="label">Your Staked</div><div id="stakedVal" class="val">-</div>
         <div class="label">Pending Rewards</div><div id="rewardsVal" class="val">-</div>
+        <div class="label">APR</div><div id="aprVal" class="val">-</div>
+        <div class="label">Est. Daily Rewards</div><div id="dailyVal" class="val">-</div>
       </div>
 
       <button id="connectBtn" class="btn">Connect Wallet</button>
 
-      <input id="amountInput" class="input" type="text" inputmode="decimal" placeholder="Amount to stake" disabled />
+      <div class="rowBtns">
+        <button id="addTokenBtn" class="btn ghost" disabled>Add CMNK to MetaMask</button>
+        <button id="toggleAutoBtn" class="btn ghost" disabled>Enable Auto-refresh</button>
+      </div>
+
+      <input id="amountInput" class="input" type="text" inputmode="decimal" placeholder="Amount" disabled />
+
+      <div class="rowBtns">
+        <button id="maxStakeBtn" class="btn secondary" disabled>MAX (Wallet)</button>
+        <button id="maxUnstakeBtn" class="btn secondary" disabled>MAX (Staked)</button>
+      </div>
 
       <button id="stakeBtn" class="btn" disabled>Stake</button>
       <button id="claimBtn" class="btn secondary" disabled>Claim Rewards</button>
       <button id="unstakeBtn" class="btn danger" disabled>Unstake</button>
+      <button id="unstakeAllBtn" class="btn danger" disabled>Unstake All</button>
 
       <div id="status" class="status">Wallet disconnected</div>
+
+      <hr class="hr"/>
+
+      <div class="links">
+        <div>
+          <a id="bscTokenLink" href="#" target="_blank" rel="noreferrer">CMNK Token (BscScan)</a>
+          &nbsp;•&nbsp;
+          <a id="bscStakeLink" href="#" target="_blank" rel="noreferrer">Staking Contract (BscScan)</a>
+        </div>
+        <div style="margin-top:6px;">
+          <a id="lastTxLink" href="#" target="_blank" rel="noreferrer" style="display:none;">View Last Transaction</a>
+        </div>
+      </div>
 
       <div class="small">
         Staking contract:<br/>
@@ -182,24 +236,35 @@
 <script>
 /**
  * ===========================
- *  ✅ KONFIGURACJA
+ *  CONFIG
  * ===========================
  */
-const STAKING_ADDRESS = "0x07d62b6725f559e4ca7dfc04586c0cf294f58aa9"; // <-- Twój staking kontrakt (BSC)
-const TOKEN_ADDRESS_FALLBACK = ""; // <-- Wklej adres tokena CMNK jeśli auto-detekcja nie zadziała (np. "0x....")
+const STAKING_ADDRESS = "0x07d62b6725f559e4ca7dfc04586c0cf294f58aa9";
+const TOKEN_ADDRESS   = "0xd17c85824eB60d40D332e64B0167E0B4029F49BA";
 
 // BSC Mainnet
 const REQUIRED_CHAIN_ID_DEC = 56;
 const REQUIRED_CHAIN_ID_HEX = "0x38";
+const BSCSCAN_BASE = "https://bscscan.com";
+
+// Auto-refresh
+const AUTO_REFRESH_SECONDS_DEFAULT = 20;
+
+// APR (simple frontend-only config, change when you want)
+const APR_PERCENT = 120; // example: 120% APR
+// daily = staked * (APR/100) / 365
 
 /**
  * ===========================
- *  ✅ UI Helpers
+ *  UI Helpers
  * ===========================
  */
 const $ = (id) => document.getElementById(id);
 
 $("stakingAddrLabel").textContent = STAKING_ADDRESS;
+
+$("bscTokenLink").href = `${BSCSCAN_BASE}/token/${TOKEN_ADDRESS}`;
+$("bscStakeLink").href = `${BSCSCAN_BASE}/address/${STAKING_ADDRESS}`;
 
 function shortAddr(a){
   if(!a || a.length < 10) return a;
@@ -217,6 +282,13 @@ function setConnectedUI(isConnected){
   $("stakeBtn").disabled = !isConnected;
   $("claimBtn").disabled = !isConnected;
   $("unstakeBtn").disabled = !isConnected;
+  $("unstakeAllBtn").disabled = !isConnected;
+
+  $("addTokenBtn").disabled = !isConnected;
+  $("toggleAutoBtn").disabled = !isConnected;
+
+  $("maxStakeBtn").disabled = !isConnected;
+  $("maxUnstakeBtn").disabled = !isConnected;
 
   if(isConnected){
     $("connectBtn").textContent = "Wallet Connected";
@@ -232,58 +304,73 @@ function fmtNum(x){
   try{
     const n = Number(x);
     if(!isFinite(n)) return String(x);
-    // max 6 miejsc po przecinku, bez trailing zeros
     return n.toLocaleString("en-US", { maximumFractionDigits: 6 });
   }catch(e){
     return String(x);
   }
 }
 
+function sanitizeAddress(addr){
+  if(!addr) return "";
+  return String(addr).replace(/[\u200B-\u200D\uFEFF\s]/g, "").trim();
+}
+
+function showLastTx(hash){
+  if(!hash) return;
+  const a = $("lastTxLink");
+  a.href = `${BSCSCAN_BASE}/tx/${hash}`;
+  a.style.display = "inline";
+}
+
+function hideLastTx(){
+  $("lastTxLink").style.display = "none";
+  $("lastTxLink").href = "#";
+}
+
 /**
  * ===========================
- *  ✅ Ethers / Wallet state
+ *  Ethers / State
  * ===========================
  */
 let provider = null;
 let signer = null;
 let userAddress = null;
 
-let staking = null;
 let token = null;
-let tokenAddress = null;
 let tokenDecimals = 18;
+let tokenSymbol = "CMNK";
+
+let autoTimer = null;
+let autoSeconds = AUTO_REFRESH_SECONDS_DEFAULT;
+
+let cachedStakedWei = null;
+let cachedWalletBalWei = null;
 
 /**
- * Minimalne ABI + “auto-detekcja” (próbujemy popularne nazwy).
- * Dzięki temu nie musimy mieć pełnego ABI 1:1.
+ * Minimal ABI candidates (same logic as your working version)
  */
 const stakingAbiCandidates = {
-  // odczyt tokena
   tokenAddress: [
     "function stakingToken() view returns (address)",
     "function stakeToken() view returns (address)",
     "function token() view returns (address)",
     "function staking_token() view returns (address)"
   ],
-
-  // read-only
   staked: [
     "function staked(address) view returns (uint256)",
     "function stakedOf(address) view returns (uint256)",
     "function balanceOf(address) view returns (uint256)",
     "function deposited(address) view returns (uint256)",
     "function userStake(address) view returns (uint256)",
-    "function stakes(address) view returns (uint256)",
+    "function stakes(address) view returns (uint256)"
   ],
   pending: [
     "function pendingRewards(address) view returns (uint256)",
     "function pendingReward(address) view returns (uint256)",
     "function pending(address) view returns (uint256)",
     "function earned(address) view returns (uint256)",
-    "function rewards(address) view returns (uint256)",
+    "function rewards(address) view returns (uint256)"
   ],
-
-  // tx
   stake: [
     "function stake(uint256) returns (bool)",
     "function deposit(uint256) returns (bool)",
@@ -299,99 +386,173 @@ const stakingAbiCandidates = {
     "function getReward()",
     "function harvest()",
     "function claimRewards()"
-  ],
+  ]
 };
 
 const erc20Abi = [
   "function decimals() view returns (uint8)",
   "function symbol() view returns (string)",
+  "function balanceOf(address owner) view returns (uint256)",
   "function allowance(address owner, address spender) view returns (uint256)",
   "function approve(address spender, uint256 amount) returns (bool)"
 ];
 
-/**
- * Tworzymy kontrakt z pierwszego ABI, które “pasuje”.
- */
-async function makeContractWithFirstWorkingAbi(address, abiList, signerOrProvider){
-  for(const frag of abiList){
-    try{
-      const c = new ethers.Contract(address, [frag], signerOrProvider);
-      // “ping” – spróbuj wykonać callStatic jeśli to view, inaczej tylko sprawdź interfejs
-      // Tu weryfikacja nastąpi przy realnym wywołaniu – ale stworzenie kontraktu nie rzuca błędu.
-      return c;
-    }catch(e){
-      // próbuj dalej
-    }
-  }
-  return null;
-}
-
-/**
- * Wywołaj po kolei różne funkcje (ABI), zwróć pierwszy działający wynik.
- */
-async function callFirstWorking(address, abiList, signerOrProvider, methodName, args=[]){
-  for(const frag of abiList){
-    try{
-      const c = new ethers.Contract(address, [frag], signerOrProvider);
-      const fn = Object.keys(c.interface.functions)[0]; // np "staked(address)"
-      const name = fn.split("(")[0];
-      if(name !== methodName) continue;
-      const res = await c[name](...args);
-      return { ok:true, value: res, used: frag };
-    }catch(e){
-      // next
-    }
-  }
-  return { ok:false, error: "No matching function worked for " + methodName };
-}
-
-/**
- * ===========================
- *  ✅ Network helpers
- * ===========================
- */
 async function ensureBscNetwork(){
   if(!provider) return;
   const net = await provider.getNetwork();
   $("netPill").textContent = "Network: " + (net && net.chainId ? net.chainId : "-");
 
   if(net.chainId !== REQUIRED_CHAIN_ID_DEC){
-    // spróbuj przełączyć automatycznie
     try{
       await window.ethereum.request({
         method: "wallet_switchEthereumChain",
         params: [{ chainId: REQUIRED_CHAIN_ID_HEX }]
       });
     }catch(e){
-      // użytkownik może odmówić – wtedy tylko pokaż komunikat
-      setStatus("Zmień sieć w MetaMask na BNB Chain (chainId 56).", "err");
+      setStatus("Please switch MetaMask network to BNB Chain (chainId 56).", "err");
       throw e;
     }
   }
 }
 
 /**
- * ===========================
- *  ✅ Core: Connect / Read / Actions
- * ===========================
+ * Read helpers
+ */
+async function readFirstWorking(address, abiList, methodArg){
+  const addr = sanitizeAddress(address);
+  for(const frag of abiList){
+    try{
+      const c = new ethers.Contract(addr, [frag], provider);
+      const fnSig = Object.keys(c.interface.functions)[0];
+      const fnName = fnSig.split("(")[0];
+      const val = await c[fnName](methodArg);
+      return { ok:true, value: val, used: frag, fnName };
+    }catch(e){}
+  }
+  return { ok:false, value:null, used:null, fnName:null };
+}
+
+async function readTokenMeta(){
+  token = new ethers.Contract(TOKEN_ADDRESS, erc20Abi, signer);
+  try{ tokenDecimals = await token.decimals(); }catch{ tokenDecimals = 18; }
+  try{ tokenSymbol = await token.symbol(); }catch{ tokenSymbol = "CMNK"; }
+}
+
+function getAmountRaw(){
+  const raw = $("amountInput").value.trim().replace(",", ".");
+  if(!raw) return null;
+  if(!/^\d+(\.\d+)?$/.test(raw)) return null;
+  const n = Number(raw);
+  if(!isFinite(n) || n <= 0) return null;
+  return raw;
+}
+
+/**
+ * Friendly error messages
+ */
+function friendlyError(e){
+  const code = e?.code || e?.error?.code;
+  const msg =
+    e?.data?.message ||
+    e?.error?.data?.message ||
+    e?.message ||
+    String(e);
+
+  if(code === "UNPREDICTABLE_GAS_LIMIT" || /cannot estimate gas/i.test(msg)){
+    return "MetaMask may not be able to estimate gas for this contract. This can be normal. You can try confirming the transaction, or increase gas limit manually.";
+  }
+  if(/user rejected/i.test(msg) || code === 4001){
+    return "Transaction was rejected in MetaMask.";
+  }
+  if(/execution reverted/i.test(msg)){
+    return "Transaction reverted by the contract. Please double-check the amount and your current staked/available balance.";
+  }
+  return msg;
+}
+
+/**
+ * Auto-refresh
+ */
+function setAutoRefresh(on){
+  if(on){
+    clearAutoRefresh();
+    autoTimer = setInterval(async ()=>{
+      try{
+        if(provider && userAddress) await refreshReadOnly(false);
+      }catch{}
+    }, autoSeconds * 1000);
+    $("autoPill").textContent = `Auto-refresh: on (${autoSeconds}s)`;
+    $("toggleAutoBtn").textContent = "Disable Auto-refresh";
+  }else{
+    clearAutoRefresh();
+    $("autoPill").textContent = "Auto-refresh: off";
+    $("toggleAutoBtn").textContent = "Enable Auto-refresh";
+  }
+}
+
+function clearAutoRefresh(){
+  if(autoTimer){
+    clearInterval(autoTimer);
+    autoTimer = null;
+  }
+}
+
+/**
+ * Add token to MetaMask
+ */
+async function addTokenToMetaMask(){
+  try{
+    if(!window.ethereum) return;
+    // Ensure we have symbol/decimals loaded
+    await readTokenMeta();
+
+    const ok = await window.ethereum.request({
+      method: "wallet_watchAsset",
+      params: {
+        type: "ERC20",
+        options: {
+          address: TOKEN_ADDRESS,
+          symbol: tokenSymbol || "CMNK",
+          decimals: Number(tokenDecimals) || 18
+        }
+      }
+    });
+
+    if(ok){
+      setStatus(`${tokenSymbol} added to MetaMask ✅`, "ok");
+    }else{
+      setStatus("Token was not added (MetaMask dismissed).", "err");
+    }
+  }catch(e){
+    setStatus("Add token error: " + friendlyError(e), "err");
+  }
+}
+
+/**
+ * Connect wallet
+ * - eth_accounts first (no popup if already approved)
+ * - eth_requestAccounts only if needed
  */
 async function connectWallet(){
   try{
     if(!window.ethereum){
-      setStatus("Brak MetaMask (window.ethereum). Zainstaluj/uruchom rozszerzenie.", "err");
-      return;
-    }
-
-    setStatus("Requesting MetaMask connection…");
-
-    // ✅ To jest poprawne żądanie “połączenia” (popup pokaże się tylko jeśli strona nie ma już permission)
-    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-    if(!accounts || !accounts.length){
-      setStatus("Brak kont z MetaMask.", "err");
+      setStatus("MetaMask not found (window.ethereum).", "err");
       return;
     }
 
     provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+
+    setStatus("Connecting…");
+
+    let accounts = await window.ethereum.request({ method: "eth_accounts" });
+    if(!accounts || !accounts.length){
+      accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+    }
+    if(!accounts || !accounts.length){
+      setStatus("No accounts returned by MetaMask.", "err");
+      return;
+    }
+
     await ensureBscNetwork();
 
     signer = provider.getSigner();
@@ -400,19 +561,25 @@ async function connectWallet(){
     setConnectedUI(true);
     setStatus("Connected: " + shortAddr(userAddress), "ok");
 
-    // events
     window.ethereum.removeListener?.("accountsChanged", onAccountsChanged);
     window.ethereum.removeListener?.("chainChanged", onChainChanged);
     window.ethereum.on?.("accountsChanged", onAccountsChanged);
     window.ethereum.on?.("chainChanged", onChainChanged);
 
-    // init contracts
-    await initContracts();
-    await refreshReadOnly();
+    await readTokenMeta();
+    $("aprVal").textContent = `${APR_PERCENT}%`;
+
+    hideLastTx();
+    await refreshReadOnly(true);
+
+    // optional: enable auto-refresh by default after connect
+    // setAutoRefresh(true);
+
   }catch(e){
     console.error(e);
     setConnectedUI(false);
-    setStatus("Connect error: " + (e?.message || String(e)), "err");
+    clearAutoRefresh();
+    setStatus("Connect error: " + friendlyError(e), "err");
   }
 }
 
@@ -421,95 +588,44 @@ async function onAccountsChanged(accounts){
     userAddress = null;
     signer = null;
     provider = null;
-    staking = null;
     token = null;
-    tokenAddress = null;
+    cachedStakedWei = null;
+    cachedWalletBalWei = null;
     setConnectedUI(false);
+    clearAutoRefresh();
     $("stakedVal").textContent = "-";
     $("rewardsVal").textContent = "-";
+    $("aprVal").textContent = "-";
+    $("dailyVal").textContent = "-";
+    hideLastTx();
     setStatus("Wallet disconnected");
     return;
   }
+
   userAddress = accounts[0];
   signer = provider.getSigner();
   setStatus("Connected: " + shortAddr(userAddress), "ok");
-  await initContracts();
-  await refreshReadOnly();
+  hideLastTx();
+  await readTokenMeta();
+  await refreshReadOnly(true);
 }
 
 async function onChainChanged(){
-  // MetaMask zaleca reload
   location.reload();
 }
 
-function sanitizeAddress(addr){
-  if(!addr) return "";
-  // usuń spacje, niewidzialne znaki, nowe linie
-  return String(addr).replace(/[\u200B-\u200D\uFEFF\s]/g, "").trim();
-}
-
-async function initContracts(){
-  const stakeAddr = sanitizeAddress(STAKING_ADDRESS);
-  if(!ethers.utils.isAddress(stakeAddr)){
-    throw new Error("STAKING_ADDRESS ma zły format: " + STAKING_ADDRESS);
-  }
-
-  // staking (provider do read, signer do tx)
-  staking = new ethers.Contract(stakeAddr, [], signer); // pusta – będziemy tworzyć per-call ABI
-
-  // spróbuj wykryć token address z kontraktu stakingu
-  tokenAddress = null;
-  const tokenRes = await callFirstWorking(stakeAddr, stakingAbiCandidates.tokenAddress, provider, "stakingToken", []);
-  if(tokenRes.ok){
-    tokenAddress = tokenRes.value;
-  }else{
-    // spróbuj inne nazwy ręcznie
-    for(const frag of stakingAbiCandidates.tokenAddress){
-      try{
-        const c = new ethers.Contract(stakeAddr, [frag], provider);
-        const fnSig = Object.keys(c.interface.functions)[0];
-        const fnName = fnSig.split("(")[0];
-        const addr = await c[fnName]();
-        if(ethers.utils.isAddress(addr)){
-          tokenAddress = addr;
-          break;
-        }
-      }catch(e){}
-    }
-  }
-
-  // fallback z configu
-  if(!tokenAddress){
-    const fb = sanitizeAddress(TOKEN_ADDRESS_FALLBACK);
-    if(fb && ethers.utils.isAddress(fb)) tokenAddress = fb;
-  }
-
-  if(tokenAddress){
-    tokenAddress = sanitizeAddress(tokenAddress);
-    token = new ethers.Contract(tokenAddress, erc20Abi, signer);
-
-    // decimals
-    try{
-      tokenDecimals = await token.decimals();
-    }catch(e){
-      tokenDecimals = 18;
-    }
-  }else{
-    // bez tokena nie zrobimy approve+stake, ale connect/read może działać
-    token = null;
-  }
-}
-
-async function refreshReadOnly(){
+/**
+ * Read-only refresh
+ */
+async function refreshReadOnly(showOkStatus){
   if(!provider || !userAddress) return;
 
   const stakeAddr = sanitizeAddress(STAKING_ADDRESS);
 
-  // odczyt staked
   let stakedBN = null;
   let pendingBN = null;
 
-  // próbuj listę “staked”
+  // staked
   for(const frag of stakingAbiCandidates.staked){
     try{
       const c = new ethers.Contract(stakeAddr, [frag], provider);
@@ -520,7 +636,7 @@ async function refreshReadOnly(){
     }catch(e){}
   }
 
-  // próbuj listę “pending”
+  // pending
   for(const frag of stakingAbiCandidates.pending){
     try{
       const c = new ethers.Contract(stakeAddr, [frag], provider);
@@ -531,66 +647,84 @@ async function refreshReadOnly(){
     }catch(e){}
   }
 
-  // wyświetl
+  // wallet balance (for MAX)
+  try{
+    if(token){
+      cachedWalletBalWei = await token.balanceOf(userAddress);
+    }
+  }catch{}
+
+  cachedStakedWei = stakedBN;
+
+  // display
   if(stakedBN != null){
     const st = ethers.utils.formatUnits(stakedBN, tokenDecimals);
-    $("stakedVal").textContent = fmtNum(st);
+    $("stakedVal").textContent = `${fmtNum(st)} ${tokenSymbol}`;
   }else{
     $("stakedVal").textContent = "-";
   }
 
   if(pendingBN != null){
     const pr = ethers.utils.formatUnits(pendingBN, tokenDecimals);
-    $("rewardsVal").textContent = fmtNum(pr);
+    $("rewardsVal").textContent = `${fmtNum(pr)} ${tokenSymbol}`;
   }else{
     $("rewardsVal").textContent = "-";
   }
 
-  // jeśli nic nie czyta, pokaż delikatnie
+  // APR + daily estimate
+  $("aprVal").textContent = `${APR_PERCENT}%`;
+  if(stakedBN != null){
+    const stFloat = Number(ethers.utils.formatUnits(stakedBN, tokenDecimals));
+    const daily = stFloat * (APR_PERCENT / 100) / 365;
+    $("dailyVal").textContent = `${fmtNum(daily)} ${tokenSymbol}`;
+  }else{
+    $("dailyVal").textContent = "-";
+  }
+
   if(stakedBN == null && pendingBN == null){
-    setStatus("Connected: " + shortAddr(userAddress) + " (brak dopasowania funkcji read-only w ABI)", "err");
+    setStatus("Connected, but could not match read-only functions in contract ABI.", "err");
+  }else if(showOkStatus){
+    setStatus("Connected: " + shortAddr(userAddress), "ok");
   }
 }
 
-function getAmount(){
-  const raw = $("amountInput").value.trim().replace(",", ".");
-  if(!raw) return null;
-  if(!/^\d+(\.\d+)?$/.test(raw)) return null;
-  const n = Number(raw);
-  if(!isFinite(n) || n <= 0) return null;
-  return raw;
-}
-
+/**
+ * Allowance + approve
+ */
 async function ensureAllowance(amountWei){
   if(!token){
-    throw new Error("Nie znam TOKEN_ADDRESS. Uzupełnij TOKEN_ADDRESS_FALLBACK w pliku.");
+    throw new Error("Token contract not initialized.");
   }
+
   const allowance = await token.allowance(userAddress, STAKING_ADDRESS);
   if(allowance.gte(amountWei)) return;
 
   setStatus("Approval required… (MetaMask)", "");
-  // approve dokładnie amount (możesz zmienić na MaxUint256 jeśli chcesz)
+  // approve exact amount (you can change to MaxUint256 if you prefer)
   const tx = await token.approve(STAKING_ADDRESS, amountWei);
+  showLastTx(tx.hash);
   setStatus("Approval sent: " + tx.hash, "");
   await tx.wait();
   setStatus("Approval confirmed ✅", "ok");
 }
 
+/**
+ * Actions
+ */
 async function doStake(){
   try{
     if(!signer) return;
     await ensureBscNetwork();
 
-    const amt = getAmount();
+    const amt = getAmountRaw();
     if(!amt){
-      setStatus("Wpisz poprawną liczbę w Amount to stake.", "err");
+      setStatus("Enter a valid amount.", "err");
       return;
     }
     const amountWei = ethers.utils.parseUnits(amt, tokenDecimals);
 
     await ensureAllowance(amountWei);
 
-    // spróbuj wykonać stake/deposit
     const stakeAddr = sanitizeAddress(STAKING_ADDRESS);
 
     let lastErr = null;
@@ -602,19 +736,20 @@ async function doStake(){
 
         setStatus("Staking… (MetaMask)", "");
         const tx = await c[fnName](amountWei);
+        showLastTx(tx.hash);
         setStatus("Stake tx sent: " + tx.hash, "");
         await tx.wait();
         setStatus("Stake confirmed ✅", "ok");
-        await refreshReadOnly();
+        await refreshReadOnly(false);
         return;
       }catch(e){
         lastErr = e;
       }
     }
-    throw lastErr || new Error("Brak pasującej funkcji stake/deposit w kontrakcie.");
+    throw lastErr || new Error("No matching stake function found in contract.");
   }catch(e){
     console.error(e);
-    setStatus("Stake error: " + (e?.data?.message || e?.message || String(e)), "err");
+    setStatus("Stake error: " + friendlyError(e), "err");
   }
 }
 
@@ -632,79 +767,148 @@ async function doClaim(){
         const fnSig = Object.keys(c.interface.functions)[0];
         const fnName = fnSig.split("(")[0];
 
-        setStatus("Claim… (MetaMask)", "");
+        setStatus("Claiming… (MetaMask)", "");
         const tx = await c[fnName]();
+        showLastTx(tx.hash);
         setStatus("Claim tx sent: " + tx.hash, "");
         await tx.wait();
         setStatus("Claim confirmed ✅", "ok");
-        await refreshReadOnly();
+        await refreshReadOnly(false);
         return;
       }catch(e){
         lastErr = e;
       }
     }
-    throw lastErr || new Error("Brak pasującej funkcji claim w kontrakcie.");
+    throw lastErr || new Error("No matching claim function found in contract.");
   }catch(e){
     console.error(e);
-    setStatus("Claim error: " + (e?.data?.message || e?.message || String(e)), "err");
+    setStatus("Claim error: " + friendlyError(e), "err");
   }
 }
 
-async function doUnstake(){
+async function doUnstake(amountWei){
+  const stakeAddr = sanitizeAddress(STAKING_ADDRESS);
+
+  let lastErr = null;
+  for(const frag of stakingAbiCandidates.unstake){
+    try{
+      const c = new ethers.Contract(stakeAddr, [frag], signer);
+      const fnSig = Object.keys(c.interface.functions)[0];
+      const fnName = fnSig.split("(")[0];
+
+      setStatus("Unstaking… (MetaMask)", "");
+      const tx = await c[fnName](amountWei);
+      showLastTx(tx.hash);
+      setStatus("Unstake tx sent: " + tx.hash, "");
+      await tx.wait();
+      setStatus("Unstake confirmed ✅", "ok");
+      await refreshReadOnly(false);
+      return;
+    }catch(e){
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error("No matching unstake/withdraw function found in contract.");
+}
+
+async function doUnstakeFromInput(){
   try{
     if(!signer) return;
     await ensureBscNetwork();
 
-    const amt = getAmount();
+    const amt = getAmountRaw();
     if(!amt){
-      setStatus("Wpisz poprawną liczbę w Amount (to unstake).", "err");
+      setStatus("Enter a valid amount.", "err");
       return;
     }
     const amountWei = ethers.utils.parseUnits(amt, tokenDecimals);
-
-    const stakeAddr = sanitizeAddress(STAKING_ADDRESS);
-
-    let lastErr = null;
-    for(const frag of stakingAbiCandidates.unstake){
-      try{
-        const c = new ethers.Contract(stakeAddr, [frag], signer);
-        const fnSig = Object.keys(c.interface.functions)[0];
-        const fnName = fnSig.split("(")[0];
-
-        setStatus("Unstake… (MetaMask)", "");
-        const tx = await c[fnName](amountWei);
-        setStatus("Unstake tx sent: " + tx.hash, "");
-        await tx.wait();
-        setStatus("Unstake confirmed ✅", "ok");
-        await refreshReadOnly();
-        return;
-      }catch(e){
-        lastErr = e;
-      }
-    }
-    throw lastErr || new Error("Brak pasującej funkcji withdraw/unstake w kontrakcie.");
+    await doUnstake(amountWei);
   }catch(e){
     console.error(e);
-    setStatus("Unstake error: " + (e?.data?.message || e?.message || String(e)), "err");
+    setStatus("Unstake error: " + friendlyError(e), "err");
+  }
+}
+
+async function doUnstakeAll(){
+  try{
+    if(!signer) return;
+    await ensureBscNetwork();
+
+    if(!cachedStakedWei){
+      await refreshReadOnly(false);
+    }
+    if(!cachedStakedWei || cachedStakedWei.lte(0)){
+      setStatus("Nothing to unstake.", "err");
+      return;
+    }
+    await doUnstake(cachedStakedWei);
+  }catch(e){
+    console.error(e);
+    setStatus("Unstake All error: " + friendlyError(e), "err");
   }
 }
 
 /**
- * ===========================
- *  ✅ Start / Bindings
- * ===========================
+ * MAX buttons
+ */
+async function fillMaxWallet(){
+  try{
+    if(!token || !userAddress) return;
+    if(!cachedWalletBalWei){
+      cachedWalletBalWei = await token.balanceOf(userAddress);
+    }
+    const val = ethers.utils.formatUnits(cachedWalletBalWei, tokenDecimals);
+    $("amountInput").value = String(val);
+    setStatus("Amount set to MAX wallet balance.", "ok");
+  }catch(e){
+    setStatus("MAX error: " + friendlyError(e), "err");
+  }
+}
+
+async function fillMaxStaked(){
+  try{
+    if(!cachedStakedWei){
+      await refreshReadOnly(false);
+    }
+    if(!cachedStakedWei){
+      setStatus("Could not read staked balance.", "err");
+      return;
+    }
+    const val = ethers.utils.formatUnits(cachedStakedWei, tokenDecimals);
+    $("amountInput").value = String(val);
+    setStatus("Amount set to MAX staked balance.", "ok");
+  }catch(e){
+    setStatus("MAX error: " + friendlyError(e), "err");
+  }
+}
+
+/**
+ * Boot / Bindings
  */
 (function boot(){
   setConnectedUI(false);
   $("netPill").textContent = "Network: -";
+  $("autoPill").textContent = "Auto-refresh: off";
+  $("aprVal").textContent = `${APR_PERCENT}%`;
+  $("dailyVal").textContent = "-";
 
   $("connectBtn").addEventListener("click", connectWallet);
   $("stakeBtn").addEventListener("click", doStake);
   $("claimBtn").addEventListener("click", doClaim);
-  $("unstakeBtn").addEventListener("click", doUnstake);
+  $("unstakeBtn").addEventListener("click", doUnstakeFromInput);
+  $("unstakeAllBtn").addEventListener("click", doUnstakeAll);
 
-  // opcjonalnie: jeśli MetaMask już ma autoryzację, możesz auto-odświeżyć stan bez popupa:
-  // (ale nie wywołujemy eth_requestAccounts automatycznie, żeby nie było “cichego” łączenia)
+  $("addTokenBtn").addEventListener("click", addTokenToMetaMask);
+
+  $("maxStakeBtn").addEventListener("click", fillMaxWallet);
+  $("maxUnstakeBtn").addEventListener("click", fillMaxStaked);
+
+  $("toggleAutoBtn").addEventListener("click", ()=>{
+    setAutoRefresh(!autoTimer);
+    setStatus(autoTimer ? "Auto-refresh enabled." : "Auto-refresh disabled.", "ok");
+  });
+
+  // Show network pill even before connect (no permissions required)
   if(window.ethereum){
     const p = new ethers.providers.Web3Provider(window.ethereum, "any");
     p.getNetwork().then(net => {
